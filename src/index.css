@@ -1,0 +1,286 @@
+/* RuleFlow Editor — Global Styles */
+/* Aligned with VPPTU Visual Design Spec v2.0 */
+
+/* Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--rf-font-sans);
+  font-size: var(--rf-text-base);
+  line-height: 1.5;
+  color: var(--rf-text-primary);
+  background: var(--rf-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  height: 100%;
+}
+
+/* v2.0: Tabular numbers for data display */
+.font-data,
+[data-font="data"] {
+  font-family: var(--rf-font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--rf-border-strong);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--rf-text-tertiary);
+}
+
+/* Selection */
+::selection {
+  background: var(--rf-brand-primary-light);
+  color: var(--rf-brand-primary);
+}
+
+/* v2.0: Focus styles — ring-2 ring-primary ring-offset-2 */
+:focus-visible {
+  outline: 2px solid var(--rf-brand-primary);
+  outline-offset: 2px;
+  border-radius: var(--rf-radius-sm);
+}
+
+/* =============================
+   LogicFlow Theme Overrides
+   ============================= */
+
+/* Canvas background */
+.lf-graph {
+  background: transparent !important;
+}
+
+.lf-canvas-overlay {
+  background: transparent !important;
+}
+
+.lf-element-text {
+  font-family: var(--rf-font-sans) !important;
+}
+
+/* Node default styles — match our design system */
+.lf-node rect {
+  rx: 8;
+  ry: 8;
+}
+
+/* Edge text background */
+.lf-edge-text {
+  font-size: 11px !important;
+}
+
+/* Grid dot color for dark mode */
+[data-theme="dark"] .lf-graph {
+  background: transparent !important;
+}
+
+/* MiniMap styling */
+.lf-mini-map {
+  background: var(--rf-bg-elevated) !important;
+  border: 1px solid var(--rf-border) !important;
+  border-radius: var(--rf-radius-md) !important;
+  box-shadow: var(--rf-shadow-md) !important;
+}
+
+/* Selection box */
+.lf-selection-select {
+  border: 1px dashed var(--rf-brand-primary) !important;
+  background: var(--rf-brand-primary-light) !important;
+  opacity: 0.3;
+}
+
+/* Anchor points */
+.lf-anchor {
+  fill: var(--rf-brand-primary) !important;
+  stroke: var(--rf-bg-primary) !important;
+  stroke-width: 2 !important;
+}
+
+/* Node selected state */
+.lf-node-selected rect {
+  stroke: var(--rf-brand-primary) !important;
+  stroke-width: 2 !important;
+  filter: drop-shadow(0 0 0 3px var(--rf-brand-primary-light));
+}
+
+/* Edge hover */
+.lf-edge:hover polyline,
+.lf-edge:hover path {
+  stroke-width: 3 !important;
+}
+
+/* Context menu override */
+.lf-menu {
+  background: var(--rf-bg-elevated) !important;
+  border: 1px solid var(--rf-border) !important;
+  border-radius: var(--rf-radius-md) !important;
+  box-shadow: var(--rf-shadow-lg) !important;
+  padding: 4px !important;
+}
+
+.lf-menu-item {
+  color: var(--rf-text-primary) !important;
+  border-radius: var(--rf-radius-sm) !important;
+  padding: 6px 12px !important;
+  font-size: var(--rf-text-sm) !important;
+}
+
+.lf-menu-item:hover {
+  background: var(--rf-bg-hover) !important;
+}
+
+/* =============================
+   Animations — v2.0 Aligned
+   ============================= */
+
+/* Pulse animation for debug-processing state */
+@keyframes rf-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.rf-debug-pulse {
+  animation: rf-pulse 2s ease-in-out infinite;
+}
+
+/* Fade in animation for panels */
+@keyframes rf-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rf-fade-in {
+  animation: rf-fade-in var(--rf-duration-normal) var(--rf-ease-default);
+}
+
+/* v2.0: Alarm flash animation (IEC 62682) */
+@keyframes alarm-flash {
+  0%, 100% { background-color: var(--rf-alarm-critical-bg); }
+  50% { background-color: var(--rf-bg-primary); }
+}
+
+.animate-alarm-flash {
+  animation: alarm-flash 1s ease-in-out infinite;
+}
+
+.animate-alarm-flash-slow {
+  animation: alarm-flash 2s ease-in-out infinite;
+}
+
+/* v2.0: Alarm slide-in animation */
+@keyframes alarm-slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.animate-alarm-slide-in {
+  animation: alarm-slide-in 300ms ease-out;
+}
+
+/* v2.0: Skeleton shimmer for loading states */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--rf-bg-tertiary) 25%, var(--rf-bg-hover) 50%, var(--rf-bg-tertiary) 75%);
+  background-size: 200px 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* v2.0: Status indicator breathing animation */
+@keyframes status-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-status-breathe {
+  animation: status-breathe 2s ease-in-out infinite;
+}
+
+/* v2.0: Spin slow for loading */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 1.5s linear infinite;
+}
+
+/* =============================
+   v2.0: Reduced Motion
+   ============================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-alarm-flash,
+  .animate-alarm-flash-slow {
+    animation: none;
+    border-left: 4px solid var(--rf-alarm-critical);
+  }
+
+  .rf-debug-pulse,
+  .animate-status-breathe,
+  .animate-spin-slow {
+    animation: none;
+  }
+
+  .skeleton-shimmer {
+    animation: none;
+    background: var(--rf-bg-tertiary);
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* =============================
+   Responsive Breakpoints
+   ============================= */
+
+@media (max-width: 1280px) {
+  :root {
+    --sidebar-width: 240px;
+    --panel-width: 300px;
+  }
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 200px;
+    --panel-width: 260px;
+  }
+}
+
+/* MD breakpoint — float panels */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 0px;
+    --panel-width: 0px;
+  }
+}

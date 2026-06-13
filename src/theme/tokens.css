@@ -1,0 +1,300 @@
+/* ============================================
+   RuleFlow Editor — Design Token System
+   Aligned with VPPTU Visual Design Spec v2.0
+   ============================================ */
+
+/* ── Light Theme (default) ── */
+:root {
+  /* Layout */
+  --navbar-height: 48px;
+  --toolbar-height: 44px;
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 48px;
+  --panel-width: 340px;
+  --panel-min-width: 280px;
+  --statusbar-height: 28px;
+  --canvas-min-width: 400px;
+
+  /* Brand */
+  --rf-brand-primary: #2563eb;
+  --rf-brand-primary-hover: #1d4ed8;
+  --rf-brand-primary-light: #eff6ff;
+  --rf-brand-accent: #06b6d4;
+
+  /* Status — Semantic */
+  --rf-status-success: #16a34a;
+  --rf-status-success-light: #f0fdf4;
+  --rf-status-warning: #d97706;
+  --rf-status-warning-light: #fffbeb;
+  --rf-status-danger: #dc2626;
+  --rf-status-danger-light: #fef2f2;
+  --rf-status-info: #0891b2;
+  --rf-status-info-light: #ecfeff;
+  --rf-status-processing: #7c3aed;
+  --rf-status-processing-light: #f5f3ff;
+  --rf-status-idle: #9ca3af;
+
+  /* Relation — Line colors */
+  --rf-relation-true: #16a34a;
+  --rf-relation-true-light: #f0fdf4;
+  --rf-relation-false: #dc2626;
+  --rf-relation-false-light: #fef2f2;
+  --rf-relation-success: #2563eb;
+  --rf-relation-success-light: #eff6ff;
+  --rf-relation-failure: #d97706;
+  --rf-relation-failure-light: #fffbeb;
+  --rf-relation-custom: #7c3aed;
+  --rf-relation-custom-light: #f5f3ff;
+
+  /* Node type colors */
+  --rf-node-rule: #2563eb;
+  --rf-node-condition: #8b5cf6;
+  --rf-node-action: #16a34a;
+  --rf-node-input: #f97316;
+  --rf-node-output: #dc2626;
+  --rf-node-subchain: #7c3aed;
+  --rf-node-note: #9ca3af;
+
+  /* Neutral — Light theme */
+  --rf-bg-primary: #ffffff;
+  --rf-bg-secondary: #f3f4f6;
+  --rf-bg-tertiary: #e5e7eb;
+  --rf-bg-hover: #f9fafb;
+  --rf-bg-elevated: #ffffff;
+  --rf-color-surface: #ffffff;
+  --rf-color-overlay: rgba(0,0,0,0.5);
+
+  /* v2.0: text-tertiary 修正为 WCAG AA 合规色值 */
+  --rf-text-primary: #111827;
+  --rf-text-secondary: #6b7280;
+  --rf-text-tertiary: #78716c;
+  --rf-text-on-primary: #ffffff;
+  --rf-text-link: #2563eb;
+
+  --rf-border: #e5e7eb;
+  --rf-border-light: #f3f4f6;
+  --rf-border-strong: #d1d5db;
+
+  /* Chart palette */
+  --rf-chart-1: #2563eb;
+  --rf-chart-2: #8b5cf6;
+  --rf-chart-3: #06b6d4;
+  --rf-chart-4: #f59e0b;
+  --rf-chart-5: #f97316;
+  --rf-chart-6: #ef4444;
+  --rf-chart-7: #22c55e;
+  --rf-chart-8: #ec4899;
+
+  /* v2.0: 五级告警色阶 (IEC 62682) */
+  --rf-alarm-critical: #dc2626;
+  --rf-alarm-critical-bg: #fef2f2;
+  --rf-alarm-major: #ea580c;
+  --rf-alarm-major-bg: #fff7ed;
+  --rf-alarm-minor: #d97706;
+  --rf-alarm-minor-bg: #fffbeb;
+  --rf-alarm-info: #0891b2;
+  --rf-alarm-info-bg: #ecfeff;
+  --rf-alarm-suppressed: #9ca3af;
+  --rf-alarm-suppressed-bg: #f3f4f6;
+
+  /* v2.0: 设备状态色 (DL/T 799) */
+  --rf-equip-running: #16a34a;
+  --rf-equip-running-bg: #f0fdf4;
+  --rf-equip-stopped: #6b7280;
+  --rf-equip-stopped-bg: #f3f4f6;
+  --rf-equip-fault: #dc2626;
+  --rf-equip-fault-bg: #fef2f2;
+  --rf-equip-maintenance: #d97706;
+  --rf-equip-maintenance-bg: #fffbeb;
+  --rf-equip-standby: #0891b2;
+  --rf-equip-standby-bg: #ecfeff;
+  --rf-equip-unknown: #9ca3af;
+  --rf-equip-unknown-bg: #f9fafb;
+
+  /* v2.0: 数据质量色 */
+  --rf-data-good: #16a34a;
+  --rf-data-estimated: #d97706;
+  --rf-data-stale: #9ca3af;
+  --rf-data-bad: #dc2626;
+
+  /* v2.0: 电压等级色 */
+  --rf-voltage-500kv: #dc2626;
+  --rf-voltage-220kv: #f97316;
+  --rf-voltage-110kv: #eab308;
+  --rf-voltage-35kv: #22c55e;
+  --rf-voltage-10kv: #2563eb;
+  --rf-voltage-380v: #8b5cf6;
+
+  /* v2.0: 能源类型色 */
+  --rf-energy-pv: #eab308;
+  --rf-energy-wind: #06b6d4;
+  --rf-energy-storage: #22c55e;
+  --rf-energy-load: #8b5cf6;
+  --rf-energy-grid: #6b7280;
+
+  /* v2.0: 色盲友好替代色板 (Okabe-Ito) */
+  --rf-cb-blue: #0072B2;
+  --rf-cb-orange: #E69F00;
+  --rf-cb-green: #009E73;
+  --rf-cb-pink: #CC79A7;
+  --rf-cb-purple: #7B2D8E;
+  --rf-cb-red: #D55E00;
+  --rf-cb-yellow: #F0E442;
+
+  /* Typography — v2.0 对齐规范字号 */
+  --rf-font-sans: Inter, "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  --rf-font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+  --rf-font-data: "Inter Tabular", "JetBrains Mono", var(--rf-font-sans);
+  --rf-text-xs: 12px;
+  --rf-text-sm: 13px;
+  --rf-text-base: 14px;
+  --rf-text-md: 14px;
+  --rf-text-lg: 16px;
+  --rf-text-xl: 18px;
+  --rf-text-2xl: 22px;
+  --rf-text-3xl: 26px;
+
+  /* Spacing (4px grid) */
+  --rf-space-1: 4px;
+  --rf-space-2: 8px;
+  --rf-space-3: 12px;
+  --rf-space-4: 16px;
+  --rf-space-5: 20px;
+  --rf-space-6: 24px;
+  --rf-space-8: 32px;
+  --rf-space-10: 40px;
+  --rf-space-12: 48px;
+
+  /* Border Radius */
+  --rf-radius-sm: 4px;
+  --rf-radius-md: 6px;
+  --rf-radius-lg: 8px;
+  --rf-radius-xl: 12px;
+  --rf-radius-full: 9999px;
+
+  /* Shadows */
+  --rf-shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --rf-shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+  --rf-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+  --rf-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+  --rf-shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
+  --rf-shadow-alarm: 0 0 8px 2px rgba(220,38,38,0.3);
+
+  /* Animation */
+  --rf-duration-fast: 150ms;
+  --rf-duration-normal: 250ms;
+  --rf-duration-slow: 350ms;
+  --rf-ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --rf-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Z-index layers — v2.0 对齐规范层级 */
+  --rf-z-canvas: 0;
+  --rf-z-edge: 5;
+  --rf-z-node: 10;
+  --rf-z-selection: 20;
+  --rf-z-panel: 100;
+  --rf-z-toolbar: 200;
+  --rf-z-popover: 300;
+  --rf-z-modal: 400;
+  --rf-z-toast: 500;
+  --rf-z-drag-preview: 600;
+  --rf-z-confirm-dialog: 60;
+  --rf-z-notification: 70;
+  --rf-z-loading-overlay: 9999;
+  --rf-z-alarm-banner: 100;
+
+  /* v2.0: 密度模式缩放 */
+  --density-scale: 1;
+}
+
+/* ── Dark Theme ── */
+[data-theme="dark"] {
+  --rf-brand-primary: #60a5fa;
+  --rf-brand-primary-hover: #3b82f6;
+  --rf-brand-primary-light: #1e3a8a;
+  --rf-brand-accent: #22d3ee;
+
+  --rf-status-success: #4ade80;
+  --rf-status-success-light: #1a3a2a;
+  --rf-status-warning: #fbbf24;
+  --rf-status-warning-light: #3b3520;
+  --rf-status-danger: #f87171;
+  --rf-status-danger-light: #3b1c1c;
+  --rf-status-info: #22d3ee;
+  --rf-status-info-light: #1a3a4a;
+  --rf-status-processing: #a78bfa;
+  --rf-status-processing-light: #2d1f4a;
+  --rf-status-idle: #9ca3af;
+
+  --rf-relation-true: #4ade80;
+  --rf-relation-true-light: #1a3a2a;
+  --rf-relation-false: #f87171;
+  --rf-relation-false-light: #3b1c1c;
+  --rf-relation-success: #60a5fa;
+  --rf-relation-success-light: #1e3a8a;
+  --rf-relation-failure: #fbbf24;
+  --rf-relation-failure-light: #3b3520;
+  --rf-relation-custom: #a78bfa;
+  --rf-relation-custom-light: #2d1f4a;
+
+  --rf-bg-primary: #111827;
+  --rf-bg-secondary: #1f2937;
+  --rf-bg-tertiary: #374151;
+  --rf-bg-hover: #374151;
+  --rf-bg-elevated: #1f2937;
+  --rf-color-surface: #1e293b;
+  --rf-color-overlay: rgba(0,0,0,0.6);
+
+  /* v2.0: 暗色模式 text-tertiary 修正 */
+  --rf-text-primary: #f9fafb;
+  --rf-text-secondary: #d1d5db;
+  --rf-text-tertiary: #a8a29e;
+  --rf-text-on-primary: #ffffff;
+  --rf-text-link: #60a5fa;
+
+  --rf-border: #374151;
+  --rf-border-light: #4b5563;
+  --rf-border-strong: #6b7280;
+
+  --rf-shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
+  --rf-shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --rf-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4);
+  --rf-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4);
+  --rf-shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.4);
+  --rf-shadow-alarm: 0 0 8px 2px rgba(248,113,113,0.3);
+
+  /* v2.0: 暗色告警色阶 */
+  --rf-alarm-critical: #f87171;
+  --rf-alarm-critical-bg: #3b1c1c;
+  --rf-alarm-major: #fb923c;
+  --rf-alarm-major-bg: #3b2510;
+  --rf-alarm-minor: #fbbf24;
+  --rf-alarm-minor-bg: #3b3520;
+  --rf-alarm-info: #22d3ee;
+  --rf-alarm-info-bg: #1a3a4a;
+  --rf-alarm-suppressed: #6b7280;
+  --rf-alarm-suppressed-bg: #374151;
+
+  /* v2.0: 暗色设备状态色 */
+  --rf-equip-running: #4ade80;
+  --rf-equip-running-bg: #1a3a2a;
+  --rf-equip-stopped: #9ca3af;
+  --rf-equip-stopped-bg: #374151;
+  --rf-equip-fault: #f87171;
+  --rf-equip-fault-bg: #3b1c1c;
+  --rf-equip-maintenance: #fbbf24;
+  --rf-equip-maintenance-bg: #3b3520;
+  --rf-equip-standby: #22d3ee;
+  --rf-equip-standby-bg: #1a3a4a;
+  --rf-equip-unknown: #6b7280;
+  --rf-equip-unknown-bg: #374151;
+}
+
+/* v2.0: 密度模式 */
+[data-density="compact"] {
+  --density-scale: 0.75;
+}
+
+[data-density="ultra-compact"] {
+  --density-scale: 0.5;
+}
