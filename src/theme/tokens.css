@@ -63,7 +63,7 @@
   --rf-bg-hover: #f9fafb;
   --rf-bg-elevated: #ffffff;
   --rf-color-surface: #ffffff;
-  --rf-color-overlay: rgba(0,0,0,0.5);
+  --rf-color-overlay: rgba(0, 0, 0, 0.5);
 
   /* v2.0: text-tertiary 修正为 WCAG AA 合规色值 */
   --rf-text-primary: #111827;
@@ -134,18 +134,20 @@
   --rf-energy-grid: #6b7280;
 
   /* v2.0: 色盲友好替代色板 (Okabe-Ito) */
-  --rf-cb-blue: #0072B2;
-  --rf-cb-orange: #E69F00;
-  --rf-cb-green: #009E73;
-  --rf-cb-pink: #CC79A7;
-  --rf-cb-purple: #7B2D8E;
-  --rf-cb-red: #D55E00;
-  --rf-cb-yellow: #F0E442;
+  --rf-cb-blue: #0072b2;
+  --rf-cb-orange: #e69f00;
+  --rf-cb-green: #009e73;
+  --rf-cb-pink: #cc79a7;
+  --rf-cb-purple: #7b2d8e;
+  --rf-cb-red: #d55e00;
+  --rf-cb-yellow: #f0e442;
 
   /* Typography — v2.0 对齐规范字号 */
-  --rf-font-sans: Inter, "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-  --rf-font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
-  --rf-font-data: "Inter Tabular", "JetBrains Mono", var(--rf-font-sans);
+  --rf-font-sans:
+    Inter, 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC',
+    'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --rf-font-mono: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+  --rf-font-data: 'Inter Tabular', 'JetBrains Mono', var(--rf-font-sans);
   --rf-text-xs: 12px;
   --rf-text-sm: 13px;
   --rf-text-base: 14px;
@@ -174,12 +176,12 @@
   --rf-radius-full: 9999px;
 
   /* Shadows */
-  --rf-shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
-  --rf-shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-  --rf-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
-  --rf-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
-  --rf-shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
-  --rf-shadow-alarm: 0 0 8px 2px rgba(220,38,38,0.3);
+  --rf-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --rf-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --rf-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --rf-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --rf-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --rf-shadow-alarm: 0 0 8px 2px rgba(220, 38, 38, 0.3);
 
   /* Animation */
   --rf-duration-fast: 150ms;
@@ -209,7 +211,7 @@
 }
 
 /* ── Dark Theme ── */
-[data-theme="dark"] {
+[data-theme='dark'] {
   --rf-brand-primary: #60a5fa;
   --rf-brand-primary-hover: #3b82f6;
   --rf-brand-primary-light: #1e3a8a;
@@ -244,7 +246,7 @@
   --rf-bg-hover: #374151;
   --rf-bg-elevated: #1f2937;
   --rf-color-surface: #1e293b;
-  --rf-color-overlay: rgba(0,0,0,0.6);
+  --rf-color-overlay: rgba(0, 0, 0, 0.6);
 
   /* v2.0: 暗色模式 text-tertiary 修正 */
   --rf-text-primary: #f9fafb;
@@ -257,12 +259,12 @@
   --rf-border-light: #4b5563;
   --rf-border-strong: #6b7280;
 
-  --rf-shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
-  --rf-shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-  --rf-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4);
-  --rf-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4);
-  --rf-shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.4);
-  --rf-shadow-alarm: 0 0 8px 2px rgba(248,113,113,0.3);
+  --rf-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --rf-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --rf-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --rf-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  --rf-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+  --rf-shadow-alarm: 0 0 8px 2px rgba(248, 113, 113, 0.3);
 
   /* v2.0: 暗色告警色阶 */
   --rf-alarm-critical: #f87171;
@@ -292,10 +294,10 @@
 }
 
 /* v2.0: 密度模式 */
-[data-density="compact"] {
+[data-density='compact'] {
   --density-scale: 0.75;
 }
 
-[data-density="ultra-compact"] {
+[data-density='ultra-compact'] {
   --density-scale: 0.5;
 }

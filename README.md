@@ -1,8 +1,8 @@
 # RuleFlow Editor
 
-基于 [LogicFlow](https://site.logic-flow.cn/) 的可视化规则链编辑器，面向工业物联网（IIoT）和虚拟电厂（VPP）场景，提供拖拽式规则编排、实时调试与可视化执行能力。
+基于 [LogicFlow](https://site.logic-flow.cn/) 的可视化规则链编辑器，面向工业物联网（IIoT）和电力自动化(SCADA)场景，提供拖拽式规则编排、实时调试与可视化执行能力。
 
-![RuleFlow Editor](screenshot-refactored.png)
+![RuleFlow Editor](screenshot.png)
 
 ## 功能特性
 
@@ -26,13 +26,12 @@
 | 框架       | [Preact](https://preactjs.com/) + [htm](https://github.com/developit/htm)                                                                     |
 | 状态管理   | [@preact/signals](https://preactjs.com/guide/v10/signals)                                                                                     |
 | 流程图引擎 | [@logicflow/core](https://www.npmjs.com/package/@logicflow/core) + [@logicflow/extension](https://www.npmjs.com/package/@logicflow/extension) |
-| 样式       | [Tailwind CSS v4](https://tailwindcss.com/) + CSS 自定义属性（Design Token 体系）                                                             |
+| 样式       | CSS Modules + CSS 自定义属性（Design Token 体系）                                                                                             |
 | 构建工具   | [Vite 8](https://vitejs.dev/)                                                                                                                 |
 | 图标       | [lucide-preact](https://lucide.dev/)                                                                                                          |
 | 模糊搜索   | [Fuse.js](https://www.fusejs.io/)                                                                                                             |
-| 国际化     | [i18next](https://www.i18next.com/)                                                                                                           |
-| 数据校验   | [Zod](https://zod.dev/)                                                                                                                       |
-| 弹窗通知   | [sonner](https://sonner.emilkowal.dev/)                                                                                                       |
+| 国际化     | 自写轻量 i18n（key-value 方案）                                                                                                               |
+| 弹窗通知   | [react-hot-toast](https://react-hot-toast.com/)                                                                                               |
 
 ## 项目结构
 
@@ -152,10 +151,15 @@ npm run preview
 | `Ctrl+F` | 搜索画布节点                  |
 | `Ctrl+.` | 切换布局密度                  |
 | `Ctrl+Z` | 撤销（由 LogicFlow 内置支持） |
+| `Ctrl+S` | 保存规则链                    |
+| `Ctrl+B` | 切换侧栏                      |
+| `Ctrl+J` | 切换面板                      |
+| `F5`     | 运行调试                      |
+| `F11`    | 专注模式                      |
 
 ### 自动布局
 
-工具栏 **布局 → 自动布局** 基于拓扑排序算法自动排列所有节点：
+工具栏 **布局 → 自动布局** 基于 BFS 拓扑排序算法自动排列所有节点：
 - 入度为 0 的节点排最左
 - 按有向边方向逐层向右扩展
 - 同层节点纵向排列

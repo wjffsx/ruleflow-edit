@@ -1,0 +1,139 @@
+.ctrlBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--rf-border);
+  border-radius: var(--rf-radius-md, 6px);
+  background: var(--rf-bg-primary);
+  color: var(--rf-text-secondary);
+  cursor: pointer;
+  transition: all 120ms;
+}
+
+.ctrlBtn:hover {
+  background: var(--rf-bg-hover);
+}
+
+.ctrlBtnActive {
+  border-color: var(--rf-brand-primary);
+  background: var(--rf-brand-primary-light);
+  color: var(--rf-brand-primary);
+}
+
+.ctrlBtnActive:hover {
+  background: var(--rf-brand-primary-light);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--rf-space-2, 8px);
+  margin-bottom: var(--rf-space-4, 16px);
+}
+
+.statCard {
+  padding: var(--rf-space-2, 8px);
+  border-radius: var(--rf-radius-md, 6px);
+  font-size: var(--rf-text-xs, 10px);
+}
+
+.statValue {
+  font-weight: 700;
+  font-size: var(--rf-text-lg, 16px);
+}
+
+.statLabel {
+  color: var(--rf-text-secondary);
+}
+
+.logItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rf-space-2, 8px);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rf-border-light, #f3f4f6);
+  font-size: var(--rf-text-sm, 11px);
+  font-family: var(--rf-font-mono, monospace);
+}
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rf-bg-tertiary, #e5e7eb);
+  overflow: hidden;
+  margin-bottom: var(--rf-space-3, 12px);
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--rf-brand-primary);
+  transition: width 300ms ease;
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--rf-text-2xs, 9px);
+  color: var(--rf-text-tertiary);
+  margin-bottom: 4px;
+}
+
+.ctrlRow {
+  display: flex;
+  gap: var(--rf-space-2, 8px);
+  margin-bottom: var(--rf-space-3, 12px);
+}
+
+.breakpointItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: var(--rf-text-sm, 11px);
+}
+
+.breakpointDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--rf-radius-full);
+  background: var(--rf-status-danger);
+}
+
+.breakpointRemoveBtn {
+  border: none;
+  background: transparent;
+  color: var(--rf-text-tertiary);
+  cursor: pointer;
+  font-size: var(--rf-text-2xs, 9px);
+}
+
+.breakpointRemoveBtn:hover {
+  color: var(--rf-text-primary);
+}
+
+.logTime {
+  color: var(--rf-text-tertiary);
+  font-size: var(--rf-text-2xs, 9px);
+  flex-shrink: 0;
+}
+
+.logMessage {
+  color: var(--rf-text-primary);
+  flex: 1;
+}
+
+.logEmpty {
+  color: var(--rf-text-tertiary);
+  font-size: var(--rf-text-sm, 11px);
+  text-align: center;
+  padding: var(--rf-space-4, 16px);
+}
+
+.logScroll {
+  max-height: 200px;
+  overflow-y: auto;
+}
