@@ -41,7 +41,7 @@ export class RelationEdgeModel extends PolylineEdgeModel {
     style.color = color
     style.fontSize = 11
     style.background = {
-      fill: '#ffffff',
+      fill: 'var(--rf-bg-primary, #ffffff)',
       stroke: color,
       strokeWidth: 1,
       radius: 4,

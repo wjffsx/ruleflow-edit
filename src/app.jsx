@@ -1,6 +1,12 @@
-import { h } from 'preact'
+import { h, Fragment } from 'preact'
 import { RuleFlowEditor } from './layout/RuleFlowEditor'
+import { ToastContainer } from './components/common/ToastContainer'
 
 export function App() {
-  return <RuleFlowEditor />
+  return (
+    <Fragment>
+      <RuleFlowEditor />
+      <ToastContainer />
+    </Fragment>
+  )
 }

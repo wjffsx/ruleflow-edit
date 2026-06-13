@@ -1,7 +1,8 @@
 import { h } from 'preact'
-import { useState } from 'preact/hooks'
+import { useState, useEffect, useRef } from 'preact/hooks'
 import { Settings, ToggleLeft, ToggleRight, Bug, X, ChevronRight } from 'lucide-preact'
 import { selectedNodeId, setActivePanelTab } from '../../store/editorStore'
+import { calculateSimplePosition } from '../../services/floatingPosition'
 
 const bubbleStyle = {
   position: 'absolute',
@@ -77,12 +78,11 @@ export function PropertyBubble({ x, y, nodeData, onClose, onOpenPanel }) {
   const priority = properties?.priority || 1
   const enabled = properties?.enabled !== false
 
-  // Adjust position
-  const adjustedX = Math.min(x + 20, window.innerWidth - 280)
-  const adjustedY = Math.min(y - 40, window.innerHeight - 200)
+  // Use floating position service
+  const position = calculateSimplePosition(x, y, 260, 200, 20)
 
   return (
-    <div style={{ ...bubbleStyle, left: adjustedX, top: adjustedY }}>
+    <div style={{ ...bubbleStyle, left: position.x, top: position.y }}>
       {/* Header with color bar */}
       <div style={headerStyle(colorVar)}>
         <div style={{

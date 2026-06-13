@@ -1,10 +1,12 @@
 import { h } from 'preact'
+import { useEffect, useRef } from 'preact/hooks'
 import { Play, Pause, Square, SkipForward, AlertTriangle, CheckCircle, XCircle, Clock, Bug } from 'lucide-preact'
 import {
   isDebugRunning, isDebugPaused, debugStep, debugTotalSteps,
   debugNodeStates, debugMessages, debugBreakpoints, debugExecutionPath,
   startDebug, pauseDebug, resumeDebug, stopDebug, stepDebug, toggleBreakpoint,
   selectedNodeId, nodeCount, setDebugNodeState, addDebugMessage,
+  lfInstance,
 } from '../../store/editorStore'
 
 const sectionTitleStyle = {
@@ -86,9 +88,33 @@ function countStates(nodeStates) {
   return { success, failure, processing, idle }
 }
 
-// Demo: simulate debug execution
+const intervalRef = { current: null }
+
+// Simulate debug execution using actual graph nodes
 function simulateDebug() {
-  const steps = ['input_soc', 'cond_soc', 'action_transform', 'action_dispatch', 'output_dispatch']
+  const lf = lfInstance.value
+  if (!lf) return
+
+  // Clear any existing interval
+  if (intervalRef.current) {
+    clearInterval(intervalRef.current)
+    intervalRef.current = null
+  }
+
+  let steps = []
+  try {
+    const data = lf.getGraphData()
+    // Build execution order: input_port → condition → action/ext → flow → output_port
+    const typeOrder = { input_port: 0, condition: 1, action: 2, ext: 3, flow: 4, note: 5, output_port: 6 }
+    steps = [...(data.nodes || [])]
+      .sort((a, b) => (typeOrder[a.properties?.nodeType] ?? 3) - (typeOrder[b.properties?.nodeType] ?? 3))
+      .map(n => n.id)
+  } catch (e) {
+    return
+  }
+
+  if (steps.length === 0) return
+
   debugTotalSteps.value = steps.length
   debugStep.value = 0
   debugNodeStates.value = {}
@@ -96,9 +122,10 @@ function simulateDebug() {
   debugExecutionPath.value = []
 
   let i = 0
-  const interval = setInterval(() => {
+  intervalRef.current = setInterval(() => {
     if (i >= steps.length || !isDebugRunning.value) {
-      clearInterval(interval)
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
       if (isDebugRunning.value) stopDebug()
       return
     }
@@ -114,7 +141,13 @@ function simulateDebug() {
 
     // Mark current as processing
     setDebugNodeState(nodeId, 'processing')
-    addDebugMessage({ nodeId, type: 'info', message: `执行节点: ${nodeId}` })
+    // Resolve node name for log message
+    let nodeName = nodeId
+    try {
+      const model = lf.getNodeModelById(nodeId)
+      if (model) nodeName = typeof model.text === 'object' ? model.text.value : model.text
+    } catch (e) { /* ignore */ }
+    addDebugMessage({ nodeId, type: 'info', message: `执行节点: ${nodeName}` })
 
     i++
 
@@ -140,6 +173,15 @@ export function DebugPanel() {
   const counts = countStates(states)
 
   const progressPct = total > 0 ? Math.round((step / total) * 100) : 0
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [])
 
   return (
     <div style={contentStyle}>

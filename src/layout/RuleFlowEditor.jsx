@@ -14,10 +14,17 @@ import {
   commandPaletteVisible,
   showCommandPalette,
   hideCommandPalette,
+  toggleSidebar,
+  togglePanel,
+  toggleFocusMode,
   startDebug,
   stopDebug,
   cycleDensityMode,
+  setZoom,
+  canvasZoom,
 } from '../store/editorStore'
+import { showSuccess, showInfo } from '../services/toastService'
+import hotkeys from 'hotkeys-js'
 
 const rootStyle = {
   display: 'grid',
@@ -44,22 +51,77 @@ export function RuleFlowEditor() {
   const focused = focusMode.value
   const cmdPaletteVisible = commandPaletteVisible.value
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts - use hotkeys-js
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Ctrl+K: Command palette
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault()
-        showCommandPalette()
-      }
-      // Ctrl+.: Toggle density mode (v2.0 Spec 18.3)
-      if ((e.ctrlKey || e.metaKey) && e.key === '.') {
-        e.preventDefault()
-        cycleDensityMode()
-      }
+    // Ctrl+K: Command palette
+    hotkeys('ctrl+k', (e) => {
+      e.preventDefault()
+      showCommandPalette()
+    })
+    
+    // Ctrl+S: Save (show toast)
+    hotkeys('ctrl+s', (e) => {
+      e.preventDefault()
+      showSuccess('规则链已保存')
+    })
+    
+    // Ctrl+B: Toggle sidebar
+    hotkeys('ctrl+b', (e) => {
+      e.preventDefault()
+      toggleSidebar()
+    })
+    
+    // Ctrl+J: Toggle panel
+    hotkeys('ctrl+j', (e) => {
+      e.preventDefault()
+      togglePanel()
+    })
+    
+    // Ctrl+.: Toggle density mode
+    hotkeys('ctrl+.', (e) => {
+      e.preventDefault()
+      cycleDensityMode()
+    })
+    
+    // Ctrl+0: Reset zoom
+    hotkeys('ctrl+0', (e) => {
+      e.preventDefault()
+      setZoom(100)
+    })
+    
+    // Ctrl++ or Ctrl+=: Zoom in
+    hotkeys('ctrl+=,ctrl++', (e) => {
+      e.preventDefault()
+      setZoom(canvasZoom.value + 10)
+    })
+    
+    // Ctrl+-: Zoom out
+    hotkeys('ctrl+-', (e) => {
+      e.preventDefault()
+      setZoom(canvasZoom.value - 10)
+    })
+    
+    // F5: Run debug
+    hotkeys('f5', (e) => {
+      e.preventDefault()
+      startDebug()
+    })
+    
+    // Shift+F5: Stop debug
+    hotkeys('shift+f5', (e) => {
+      e.preventDefault()
+      stopDebug()
+    })
+    
+    // F11: Focus mode
+    hotkeys('f11', (e) => {
+      e.preventDefault()
+      toggleFocusMode()
+    })
+    
+    return () => {
+      hotkeys.unbind('ctrl+k,ctrl+s,ctrl+b,ctrl+j,ctrl+.,ctrl+0,ctrl+=,ctrl++,ctrl+-,f5,shift+f5,f11')
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   // Compute grid columns based on layout state

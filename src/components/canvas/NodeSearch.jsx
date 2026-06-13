@@ -1,7 +1,7 @@
 import { h } from 'preact'
 import { useState, useEffect, useRef, useMemo } from 'preact/hooks'
 import { Search, X, ChevronUp, ChevronDown } from 'lucide-preact'
-import Fuse from 'fuse.js'
+import { searchService } from '../../services/searchService'
 
 const containerStyle = {
   position: 'absolute',
@@ -66,21 +66,16 @@ export function NodeSearch({ nodes, onClose, onLocateNode }) {
 
   useEffect(() => {
     inputRef.current?.focus()
-  }, [])
-
-  // Build fuse search index from node data
-  const fuse = useMemo(() => {
-    if (!nodes || nodes.length === 0) return null
-    return new Fuse(nodes, {
-      keys: ['text.value', 'text', 'properties.nodeType', 'properties.summary', 'id'],
-      threshold: 0.4,
-    })
+    // Update search service index when nodes change
+    if (nodes && nodes.length > 0) {
+      searchService.updateNodeIndex(nodes)
+    }
   }, [nodes])
 
   const results = useMemo(() => {
-    if (!fuse || !query.trim()) return []
-    return fuse.search(query).map(r => r.item)
-  }, [query, fuse])
+    if (!query.trim()) return []
+    return searchService.searchNodes(query)
+  }, [query, nodes])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -96,13 +91,9 @@ export function NodeSearch({ nodes, onClose, onLocateNode }) {
   }
 
   const handleInput = (e) => {
-    setQuery(e.target.value)
+    const newQuery = e.target.value
+    setQuery(newQuery)
     setCurrentIndex(0)
-    // Auto-locate first result
-    if (results.length > 0 && fuse) {
-      const newResults = fuse.search(e.target.value).map(r => r.item)
-      if (newResults.length > 0) onLocateNode?.(newResults[0].id)
-    }
   }
 
   const navigatePrev = () => {

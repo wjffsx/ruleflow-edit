@@ -1,9 +1,10 @@
 import { h } from 'preact'
 import { useState } from 'preact/hooks'
-import { X, FileText, Bug, List, Pin, ExternalLink, Pencil, LogIn, LogOut, GitBranch, Play, Zap, Radio } from 'lucide-preact'
+import { X, FileText, Bug, List, Pin, ExternalLink, Pencil, LogIn, LogOut, GitBranch, Play, Zap, Radio, Puzzle, Link, ArrowLeftRight, MessageSquare } from 'lucide-preact'
 import {
   panelClosed, togglePanel, activePanelTab, setActivePanelTab,
   selectedNodeId, panelMode, chainName, setPanelMode,
+  outlineNodes, lfInstance,
 } from '../../store/editorStore'
 import { DebugPanel } from './DebugPanel'
 import { t } from '../../i18n'
@@ -130,18 +131,19 @@ const panelModes = [
   { key: 'inline', icon: Pencil, label: '内联' },
 ]
 
-// Mock data for demo
-const MOCK_CONNECTIONS = [
-  { relation: 'True', target: '值变换', colorVar: '--rf-relation-true' },
-  { relation: 'False', target: '告警通知', colorVar: '--rf-relation-false' },
-  { relation: 'Success', target: '调度下发', colorVar: '--rf-relation-success' },
-]
+// Relation type colors
+const RELATION_COLORS = {
+  True: '--rf-relation-true',
+  False: '--rf-relation-false',
+  Success: '--rf-relation-success',
+  default: '--rf-border',
+}
 
 function PropertiesTab() {
-  const hasNode = selectedNodeId.value
+  const nodeId = selectedNodeId.value
   const currentMode = panelMode.value
 
-  if (!hasNode) {
+  if (!nodeId) {
     return (
       <div style={{ ...contentStyle, textAlign: 'center', color: 'var(--rf-text-tertiary)', paddingTop: 'var(--rf-space-10)' }}>
         <FileText size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
@@ -149,6 +151,53 @@ function PropertiesTab() {
       </div>
     )
   }
+
+  // Get node data from LogicFlow
+  const lf = lfInstance.value
+  let nodeData = null
+  let outgoingEdges = []
+  if (lf) {
+    try {
+      const model = lf.getNodeModelById(nodeId)
+      if (model) {
+        nodeData = {
+          text: typeof model.text === 'object' ? model.text.value : model.text,
+          nodeType: model.properties?.nodeType || 'action',
+          priority: model.properties?.priority ?? 1,
+          enabled: model.properties?.enabled !== false,
+          summary: model.properties?.summary || '',
+        }
+      }
+      // Get outgoing edges for connections
+      const graphData = lf.getGraphData()
+      outgoingEdges = (graphData.edges || []).filter(e => e.sourceNodeId === nodeId)
+    } catch (e) { /* ignore */ }
+  }
+
+  if (!nodeData) {
+    return (
+      <div style={{ ...contentStyle, textAlign: 'center', color: 'var(--rf-text-tertiary)', paddingTop: 'var(--rf-space-10)' }}>
+        <FileText size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
+        <div style={{ fontSize: 'var(--rf-text-sm)' }}>选择节点查看属性</div>
+      </div>
+    )
+  }
+
+  // Resolve target node names for connections
+  const connections = outgoingEdges.map(edge => {
+    const relationType = edge.properties?.relationType || 'default'
+    let targetName = edge.targetNodeId
+    if (lf) {
+      try {
+        const targetModel = lf.getNodeModelById(edge.targetNodeId)
+        if (targetModel) {
+          targetName = typeof targetModel.text === 'object' ? targetModel.text.value : targetModel.text
+        }
+      } catch (e) { /* ignore */ }
+    }
+    const colorVar = RELATION_COLORS[relationType] || RELATION_COLORS.default
+    return { relation: relationType === 'default' ? '' : relationType, target: targetName, colorVar }
+  }).filter(c => c.relation) // Only show labeled relations
 
   return (
     <div style={contentStyle}>
@@ -189,7 +238,7 @@ function PropertiesTab() {
         <div style={fieldRowStyle}>
           <span style={fieldLabelStyle}>节点名称</span>
         </div>
-        <input style={inputStyle} value="SOC 监控" />
+        <input style={inputStyle} value={nodeData.text} readOnly />
 
         <div style={fieldRowStyle}>
           <span style={fieldLabelStyle}>优先级</span>
@@ -201,19 +250,35 @@ function PropertiesTab() {
               color: 'var(--rf-brand-primary)',
               fontSize: 'var(--rf-text-xs)',
               fontWeight: 600,
-            }}>P:1</span>
+            }}>P:{nodeData.priority}</span>
           </span>
         </div>
 
         <div style={fieldRowStyle}>
           <span style={fieldLabelStyle}>{t('node.enabled')}</span>
-          <div style={{
+          <div onClick={() => {
+            if (lf && nodeId) {
+              const model = lf.getNodeModelById(nodeId)
+              if (model) {
+                model.setProperties({
+                  ...model.properties,
+                  enabled: !nodeData.enabled
+                })
+              }
+            }
+          }} style={{
             width: 32, height: 18, borderRadius: 'var(--rf-radius-full)',
-            background: 'var(--rf-status-success)', position: 'relative', cursor: 'pointer',
+            background: nodeData.enabled ? 'var(--rf-status-success)' : 'var(--rf-text-tertiary)',
+            position: 'relative', cursor: 'pointer',
+            transition: 'background var(--rf-duration-fast)',
           }}>
             <div style={{
               width: 14, height: 14, borderRadius: 'var(--rf-radius-full)',
-              background: '#fff', position: 'absolute', top: 2, right: 2, boxShadow: 'var(--rf-shadow-xs)',
+              background: '#fff', position: 'absolute', top: 2,
+              left: nodeData.enabled ? 'auto' : 2,
+              right: nodeData.enabled ? 2 : 'auto',
+              boxShadow: 'var(--rf-shadow-xs)',
+              transition: 'left var(--rf-duration-fast), right var(--rf-duration-fast)',
             }} />
           </div>
         </div>
@@ -225,7 +290,7 @@ function PropertiesTab() {
         {t('panel.connections')}
       </div>
 
-      {MOCK_CONNECTIONS.map((conn, i) => (
+      {connections.length > 0 ? connections.map((conn, i) => (
         <div key={i} style={{
           ...connectionItemStyle,
           background: `var(${conn.colorVar}-light)`,
@@ -240,7 +305,11 @@ function PropertiesTab() {
           <span style={{ color: 'var(--rf-text-primary)' }}>→</span>
           <span style={{ color: 'var(--rf-text-primary)' }}>{conn.target}</span>
         </div>
-      ))}
+      )) : (
+        <div style={{ color: 'var(--rf-text-tertiary)', fontSize: 'var(--rf-text-sm)', padding: 'var(--rf-space-2) 0' }}>
+          无连接关系
+        </div>
+      )}
 
       <button style={{
         display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--rf-space-2)',
@@ -256,47 +325,78 @@ function PropertiesTab() {
 
 // v2.0: Outline items use Lucide icons instead of Emoji
 const OUTLINE_ICON_MAP = {
-  input: LogIn,
-  output: LogOut,
+  input_port: LogIn,
+  output_port: LogOut,
   condition: GitBranch,
   action: Play,
-  dispatch: Radio,
+  ext: Puzzle,
+  flow: Link,
+  note: MessageSquare,
+}
+
+const OUTLINE_COLOR_MAP = {
+  input_port: 'var(--rf-node-input)',
+  output_port: 'var(--rf-node-output)',
+  condition: 'var(--rf-node-condition)',
+  action: 'var(--rf-node-action)',
+  ext: 'var(--rf-node-ext)',
+  flow: 'var(--rf-node-subchain)',
+  note: 'var(--rf-text-tertiary)',
 }
 
 function OutlineTab() {
-  const outlineItems = [
-    { icon: LogIn, name: '输入: soc', indent: 0, color: 'var(--rf-node-input)', id: 'input_soc' },
-    { icon: LogIn, name: '输入: active_pw', indent: 0, color: 'var(--rf-node-input)', id: 'input_pw' },
-    { icon: GitBranch, name: 'SOC 监控 (P:1)', indent: 0, color: 'var(--rf-node-condition)', id: 'cond_soc' },
-    { icon: Zap, name: '值变换', indent: 1, color: 'var(--rf-node-action)', id: 'action_transform' },
-    { icon: Zap, name: '告警通知', indent: 1, color: 'var(--rf-node-action)', id: 'action_alert' },
-    { icon: Radio, name: '调度下发', indent: 0, color: 'var(--rf-node-action)', id: 'action_dispatch' },
-    { icon: LogOut, name: '输出: dispatch', indent: 0, color: 'var(--rf-node-output)', id: 'output_dispatch' },
-  ]
+  const nodes = outlineNodes.value
+
+  if (!nodes || nodes.length === 0) {
+    return (
+      <div style={{ ...contentStyle, textAlign: 'center', color: 'var(--rf-text-tertiary)', paddingTop: 'var(--rf-space-10)' }}>
+        <List size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
+        <div style={{ fontSize: 'var(--rf-text-sm)' }}>画布为空</div>
+      </div>
+    )
+  }
+
+  // Sort: input_port first, then condition, action, ext, flow, output_port last
+  const typeOrder = { input_port: 0, condition: 1, action: 2, ext: 3, flow: 4, note: 5, output_port: 6 }
+  const sorted = [...nodes].sort((a, b) => {
+    const ta = typeOrder[a.properties?.nodeType] ?? 3
+    const tb = typeOrder[b.properties?.nodeType] ?? 3
+    return ta - tb
+  })
 
   return (
     <div style={contentStyle}>
       <div style={sectionTitleStyle}>
         <span>{chainName.value}</span>
       </div>
-      {outlineItems.map((item, i) => {
-        const IconComp = item.icon
+      {sorted.map((node) => {
+        const nodeType = node.properties?.nodeType || 'action'
+        const IconComp = OUTLINE_ICON_MAP[nodeType] || Play
+        const color = OUTLINE_COLOR_MAP[nodeType] || 'var(--rf-text-secondary)'
+        const text = typeof node.text === 'object' ? node.text.value : node.text
+        const priority = node.properties?.priority
+        const priorityLabel = priority ? ` (P:${priority})` : ''
+        const isSelected = selectedNodeId.value === node.id
+
         return (
           <div
-            key={i}
+            key={node.id}
             style={{
               display: 'flex', alignItems: 'center', gap: 'var(--rf-space-2)',
-              padding: '4px 0 4px ' + (item.indent * 16 + 4) + 'px',
-              fontSize: 'var(--rf-text-sm)', color: 'var(--rf-text-primary)',
+              padding: '4px 6px',
+              fontSize: 'var(--rf-text-sm)',
+              color: isSelected ? 'var(--rf-brand-primary)' : 'var(--rf-text-primary)',
               cursor: 'pointer', borderRadius: 'var(--rf-radius-sm)',
+              background: isSelected ? 'var(--rf-brand-primary-light)' : 'transparent',
+              fontWeight: isSelected ? 500 : 400,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--rf-bg-hover)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-            onClick={() => { selectedNodeId.value = item.id }}
+            onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--rf-bg-hover)' }}
+            onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
+            onClick={() => { selectedNodeId.value = node.id }}
           >
-            <IconComp size={14} style={{ color: item.color, flexShrink: 0 }} aria-hidden="true" />
-            <span style={{ flex: 1 }}>{item.name}</span>
-            <div style={{ width: 3, height: 10, borderRadius: 2, background: item.color, flexShrink: 0 }} />
+            <IconComp size={14} style={{ color, flexShrink: 0 }} aria-hidden="true" />
+            <span style={{ flex: 1 }}>{text}{priorityLabel}</span>
+            <div style={{ width: 3, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
           </div>
         )
       })}

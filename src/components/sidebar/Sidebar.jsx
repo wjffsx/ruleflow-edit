@@ -24,9 +24,9 @@ import {
   // Unpack icon fallback
   Box,
 } from 'lucide-preact'
-import Fuse from 'fuse.js'
 import { sidebarCollapsed, toggleSidebar, toggleCategoryCollapse, isCategoryCollapsed } from '../../store/editorStore'
 import { NODE_CATEGORIES, PORT_NODES, NOTE_NODE } from '../../data/nodeRegistry'
+import { searchService } from '../../services/searchService'
 import { t } from '../../i18n'
 
 // v2.0: Icon name to Lucide component mapping
@@ -222,18 +222,15 @@ export function Sidebar() {
       items.push({ ...item, category: '端口', categoryIcon: 'LogIn' })
     })
     items.push({ ...NOTE_NODE, category: '辅助', categoryIcon: 'MessageSquare' })
+    // Update search service index
+    searchService.updateSidebarItemIndex(items)
     return items
   }, [])
 
-  const fuse = useMemo(() => new Fuse(allItems, {
-    keys: ['name', 'type', 'category'],
-    threshold: 0.4,
-  }), [allItems])
-
   const searchResults = useMemo(() => {
     if (!query.trim()) return null
-    return fuse.search(query).map(r => r.item)
-  }, [query, fuse])
+    return searchService.searchSidebarItems(query)
+  }, [query])
 
   if (collapsed) {
     return (

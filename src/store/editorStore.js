@@ -44,14 +44,17 @@ export const lastSaved = signal(null)
 export const isDirty = signal(false)
 
 // LogicFlow instance reference (set by CanvasViewport)
-export let lfInstance = null
-export function setLfInstance(lf) { lfInstance = lf }
+export const lfInstance = signal(null)
+export function setLfInstance(lf) { lfInstance.value = lf }
 
 // Stats
 export const nodeCount = signal(0)
 export const edgeCount = signal(0)
 export const errorCount = signal(0)
 export const warningCount = signal(0)
+
+// Outline data (synced from LogicFlow graph)
+export const outlineNodes = signal([])
 
 // ── Phase 2: Interactive Enhancement ──
 
@@ -170,8 +173,14 @@ export function setDebugNodeState(nodeId, state) {
   debugNodeStates.value = { ...debugNodeStates.value, [nodeId]: state }
 }
 
+const MAX_DEBUG_MESSAGES = 500
+
 export function addDebugMessage(msg) {
-  debugMessages.value = [...debugMessages.value, { ...msg, time: Date.now() }]
+  const current = debugMessages.value
+  const next = [...current, { ...msg, time: Date.now() }]
+  debugMessages.value = next.length > MAX_DEBUG_MESSAGES
+    ? next.slice(-MAX_DEBUG_MESSAGES)
+    : next
 }
 
 // ── Phase 4: Ecosystem ──
@@ -214,7 +223,20 @@ export function toggleFocusMode() {
 }
 
 export function setZoom(z) {
-  canvasZoom.value = Math.min(200, Math.max(25, Math.round(z)))
+  const newZoom = Math.min(200, Math.max(25, Math.round(z)))
+  canvasZoom.value = newZoom
+  // 双向同步：signal → LogicFlow
+  const lf = lfInstance.value
+  if (lf) {
+    try {
+      const currentTransform = lf.getTransform()
+      const currentScale = currentTransform?.SCALE_X || 1
+      const targetScale = newZoom / 100
+      if (Math.abs(currentScale - targetScale) > 0.01) {
+        lf.zoom(targetScale / currentScale)
+      }
+    } catch (e) { /* ignore */ }
+  }
 }
 
 export function setCanvasStatus(s) {

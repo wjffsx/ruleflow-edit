@@ -2,6 +2,7 @@ import { h } from 'preact'
 import { useEffect, useRef } from 'preact/hooks'
 import { X } from 'lucide-preact'
 import { RELATION_TYPES } from '../../data/nodeRegistry'
+import { calculateSimplePosition } from '../../services/floatingPosition'
 
 const overlayStyle = {
   position: 'absolute',
@@ -70,12 +71,11 @@ export function RelationTypeSelector({ x, y, edgeId, onSelect, onClose }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Adjust position to keep selector within viewport
-  const adjustedX = Math.min(x, window.innerWidth - 200)
-  const adjustedY = Math.min(y, window.innerHeight - 250)
+  // Use floating position service
+  const position = calculateSimplePosition(x, y, 200, 250, 8)
 
   return (
-    <div ref={ref} style={{ ...overlayStyle, left: adjustedX, top: adjustedY }}>
+    <div ref={ref} style={{ ...overlayStyle, left: position.x, top: position.y }}>
       <div style={headerStyle}>
         <span>选择关系类型</span>
         <button style={closeBtnStyle} onClick={onClose} aria-label="关闭">

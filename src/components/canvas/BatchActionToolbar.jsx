@@ -1,5 +1,6 @@
 import { h } from 'preact'
 import { Copy, Trash2, ToggleLeft, Group, Ungroup } from 'lucide-preact'
+import { calculateSimplePosition } from '../../services/floatingPosition'
 
 const toolbarStyle = {
   position: 'absolute',
@@ -40,11 +41,11 @@ const dividerStyle = {
 export function BatchActionToolbar({ x, y, selectedCount, onCopy, onDelete, onToggleEnable, onGroup }) {
   if (!selectedCount || selectedCount < 2) return null
 
-  const adjustedX = Math.min(x, window.innerWidth - 260)
-  const adjustedY = Math.max(y - 50, 60)
+  // Use floating position service
+  const position = calculateSimplePosition(x, y, 260, 50, 0)
 
   return (
-    <div style={{ ...toolbarStyle, left: adjustedX, top: adjustedY }} role="toolbar" aria-label="批量操作">
+    <div style={{ ...toolbarStyle, left: position.x, top: position.y }} role="toolbar" aria-label="批量操作">
       <button style={btnStyle} onClick={onCopy} title="复制" aria-label="复制选中节点"
         onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--rf-bg-hover)'; e.currentTarget.style.color = 'var(--rf-text-primary)' }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--rf-text-secondary)' }}

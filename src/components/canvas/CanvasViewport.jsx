@@ -20,6 +20,7 @@ import {
   batchToolbarState, hideBatchToolbar,
   selectedNodeIds,
   setActivePanelTab,
+  outlineNodes,
 } from '../../store/editorStore'
 import { NODE_VISUAL_MAP, NODE_TYPE_MAP } from '../../data/nodeRegistry'
 import { t } from '../../i18n'
@@ -106,6 +107,30 @@ export function CanvasViewport() {
 
     // ── Event handlers ──
 
+    // Debounced graph update handler
+    const debouncedUpdate = (() => {
+      let timer = null
+      return () => {
+        if (timer) clearTimeout(timer)
+        timer = setTimeout(() => {
+          try {
+            const data = lf.getGraphData()
+            const newNodes = data?.nodes || []
+            // 浅比较后再赋值，避免不必要的重渲染
+            if (newNodes.length !== outlineNodes.value.length) {
+              outlineNodes.value = newNodes
+            } else {
+              // 检查内容是否变化
+              const changed = newNodes.some((n, i) => n.id !== outlineNodes.value[i]?.id)
+              if (changed) {
+                outlineNodes.value = newNodes
+              }
+            }
+          } catch (e) { /* ignore */ }
+        }, 100)
+      }
+    })()
+
     // Graph updated → update stats
     lf.on('graph:updated', () => {
       try {
@@ -116,6 +141,8 @@ export function CanvasViewport() {
         edgeCount.value = ec
         setIsEmpty(nc === 0)
         setAllNodes(data?.nodes || [])
+        // 使用防抖更新 outlineNodes
+        debouncedUpdate()
       } catch (e) { /* ignore */ }
     })
 
