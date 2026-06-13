@@ -2,11 +2,27 @@ import { h } from 'preact'
 import { useState, useMemo, useCallback } from 'preact/hooks'
 import {
   Search, Star, ChevronRight, ChevronDown, PanelLeftClose, PanelLeft,
-  LogIn, LogOut, Cpu, Hash, MapPin, Ruler, CheckCircle, Timer,
-  FileCode, RefreshCw, Hourglass, TrendingUp, BatteryMedium, Zap, Coins,
-  Pencil, Tag, Trash2, TrafficCone, Bell, Globe, Radio, BarChart3,
-  ArrowLeftRight, Link, AlarmClock, Factory, BatteryCharging, Cable,
-  ClipboardList, GitBranch, Play, GitMerge, MessageSquare,
+  // Ports
+  LogIn, LogOut,
+  // Builtin condition icons
+  Cpu, Hash, MapPin, Ruler, CheckCircle, Timer, AlertTriangle,
+  Regex, FolderTree, ListChecks, Binary, ArrowUpDown, Gauge,
+  RefreshCw, Hourglass, TrendingUp, Repeat, SlidersHorizontal, Undo2,
+  // Builtin action icons
+  Pencil, Tag, Trash2, TrafficCone, Bell, Clock,
+  ArrowLeftRight, BadgeCheck, Package,
+  // Ext node icons
+  FileCode, History, BellRing, FileText, Network, Target,
+  Calculator, Database, BarChart3, Layers, Activity, Snowflake, Sigma,
+  // VPP icons
+  BatteryMedium, Coins, Radio, LineChart, Leaf, CloudSun, Percent,
+  ArrowDown, PlugZap, HeartPulse, Zap,
+  // Flow icons
+  Link, AlarmClock,
+  // Category icons
+  Factory, GitBranch, Play, GitMerge, Puzzle, MessageSquare, ClipboardList,
+  // Unpack icon fallback
+  Box,
 } from 'lucide-preact'
 import Fuse from 'fuse.js'
 import { sidebarCollapsed, toggleSidebar, toggleCategoryCollapse, isCategoryCollapsed } from '../../store/editorStore'
@@ -15,11 +31,27 @@ import { t } from '../../i18n'
 
 // v2.0: Icon name to Lucide component mapping
 const ICON_MAP = {
-  LogIn, LogOut, Cpu, Hash, MapPin, Ruler, CheckCircle, Timer,
-  FileCode, RefreshCw, Hourglass, TrendingUp, BatteryMedium, Zap, Coins,
-  Pencil, Tag, Trash2, TrafficCone, Bell, Globe, Radio, BarChart3,
-  ArrowLeftRight, Link, AlarmClock, Factory, BatteryCharging, Cable,
-  ClipboardList, GitBranch, Play, GitMerge, MessageSquare,
+  // Ports
+  LogIn, LogOut,
+  // Builtin condition
+  Cpu, Hash, MapPin, Ruler, CheckCircle, Timer, AlertTriangle,
+  Regex, FolderTree, ListChecks, Binary, ArrowUpDown, Gauge,
+  RefreshCw, Hourglass, TrendingUp, Repeat, SlidersHorizontal, Undo2,
+  // Builtin action
+  Pencil, Tag, Trash2, TrafficCone, Bell, Clock,
+  ArrowLeftRight, BadgeCheck, Package,
+  // Ext
+  FileCode, History, BellRing, FileText, Network, Target,
+  Calculator, Database, BarChart3, Layers, Activity, Snowflake, Sigma,
+  // VPP
+  BatteryMedium, Coins, Radio, LineChart, Leaf, CloudSun, Percent,
+  ArrowDown, PlugZap, HeartPulse,
+  // Flow
+  Link, AlarmClock,
+  // Category
+  Factory, GitBranch, Play, GitMerge, Puzzle, MessageSquare, ClipboardList,
+  // Fallbacks
+  Box, Split: GitBranch, Zap,
   Star,
 }
 

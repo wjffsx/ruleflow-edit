@@ -4,7 +4,7 @@ import {
   Undo2, Redo2,
   Play, Square, RotateCcw,
   Maximize, List, Map,
-  LayoutGrid, Grid3X3,
+  LayoutGrid, Grid3X3, Grid2X2,
   Copy, Trash2, ToggleLeft, ToggleRight,
 } from 'lucide-preact'
 import {
@@ -256,6 +256,24 @@ export function Toolbar() {
               }
             })
           } catch (e) { /* ignore */ }
+        }} />
+        <ToolbarBtn icon={Grid2X2} title="显示/隐藏网格" onClick={() => {
+          const lf = lfInstance
+          if (!lf) return
+          try {
+            const grid = lf.graphModel.grid
+            if (grid) {
+              grid.visible = !grid.visible
+              lf.graphModel.eventCenter.emit('graph:transform', grid)
+            }
+          } catch (e) {
+            // Fallback: toggle grid via re-render
+            try {
+              const model = lf.graphModel
+              const curVisible = model.grid?.visible ?? true
+              lf.graphModel.grid = { ...model.grid, visible: !curVisible }
+            } catch (e2) { /* ignore */ }
+          }
         }} />
       </div>
 

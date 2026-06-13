@@ -21,6 +21,7 @@ import {
   selectedNodeIds,
   setActivePanelTab,
 } from '../../store/editorStore'
+import { NODE_VISUAL_MAP, NODE_TYPE_MAP } from '../../data/nodeRegistry'
 import { t } from '../../i18n'
 
 // Demo data — v2.0: Emoji replaced with Unicode symbols per VPPTU design spec
@@ -230,62 +231,25 @@ export function CanvasViewport() {
     try {
       const item = JSON.parse(nodeData)
       const point = lf.getPointByClient(e.clientX, e.clientY)
-      // Map nodeType to custom LogicFlow type based on category
-      const categoryTypeMap = {
-        // Input port items
-        device_type: 'rf-input-port', device_id: 'rf-input-port',
-        point_name: 'rf-input-port', value_range: 'rf-input-port',
-        quality_code: 'rf-input-port', time_window: 'rf-input-port',
-        // Condition items
-        js_filter: 'rf-condition', value_range_cond: 'rf-condition',
-        state_change: 'rf-condition', duration_cond: 'rf-condition',
-        trend_cond: 'rf-condition', soc_monitor: 'rf-condition',
-        power_factor: 'rf-condition', price_threshold: 'rf-condition',
-        // Action items
-        transform: 'rf-action', rename: 'rf-action',
-        label: 'rf-action', discard: 'rf-action',
-        route: 'rf-action', alert: 'rf-action',
-        rest_call: 'rf-action', dispatch: 'rf-action',
-        aggregator: 'rf-action',
-        // Flow items
-        sub_chain: 'rf-sub-chain', delay: 'rf-rule',
-        // VPP items
-        vpp_charge: 'rf-action', vpp_discharge: 'rf-action',
-        vpp_ess_control: 'rf-action', vpp_grid_interact: 'rf-action',
-        vpp_load_shift: 'rf-action', vpp_demand_resp: 'rf-action',
-        // Base types
-        input_port: 'rf-input-port', output_port: 'rf-output-port',
-        rule: 'rf-rule', condition: 'rf-condition',
-        action: 'rf-action', note: 'rf-note',
+      // Use NODE_VISUAL_MAP to determine visual category
+      const visualCategory = NODE_VISUAL_MAP[item.type] || 'action'
+      // Map visual category to LogicFlow custom type
+      const categoryToLfType = {
+        port: 'rf-input-port',
+        condition: 'rf-condition',
+        action: 'rf-action',
+        ext: 'rf-ext-action',
+        flow: 'rf-sub-chain',
+        note: 'rf-note',
       }
-      // Determine nodeType from item for properties
-      const nodeCategoryMap = {
-        device_type: 'input_port', device_id: 'input_port',
-        point_name: 'input_port', value_range: 'input_port',
-        quality_code: 'input_port', time_window: 'input_port',
-        js_filter: 'condition', value_range_cond: 'condition',
-        state_change: 'condition', duration_cond: 'condition',
-        trend_cond: 'condition', soc_monitor: 'condition',
-        power_factor: 'condition', price_threshold: 'condition',
-        transform: 'action', rename: 'action',
-        label: 'action', discard: 'action',
-        route: 'action', alert: 'action',
-        rest_call: 'action', dispatch: 'action',
-        aggregator: 'action',
-        sub_chain: 'sub_chain', delay: 'rule',
-        vpp_charge: 'action', vpp_discharge: 'action',
-        vpp_ess_control: 'action', vpp_grid_interact: 'action',
-        vpp_load_shift: 'action', vpp_demand_resp: 'action',
-      }
-      const lfType = categoryTypeMap[item.type] || 'rf-rule'
-      const nodeType = nodeCategoryMap[item.type] || item.type
+      const lfType = item.type === 'output_port' ? 'rf-output-port' : (categoryToLfType[visualCategory] || 'rf-action')
       lf.addNode({
         id: `${item.type}_${Date.now()}`,
         type: lfType,
         x: point.x,
         y: point.y,
         text: item.name,
-        properties: { nodeType: nodeType, icon: item.icon, priority: 1, enabled: true },
+        properties: { nodeType: visualCategory, icon: item.icon, priority: 1, enabled: true },
       })
       setIsEmpty(false)
     } catch (err) { console.error('Failed to add node:', err) }

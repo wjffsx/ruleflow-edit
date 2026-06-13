@@ -13,7 +13,8 @@ const NODE_COLORS = {
   rule:         '#2563eb',
   condition:    '#8b5cf6',
   action:       '#16a34a',
-  sub_chain:    '#7c3aed',
+  ext:          '#0891b2',
+  flow:         '#7c3aed',
   note:         '#9ca3af',
 }
 
@@ -25,7 +26,8 @@ const NODE_ICONS = {
   rule:         '\u2630',    // ☰ trigram for heaven
   condition:    '\u25C7',    // ◇ diamond
   action:       '\u25B6',    // ▶ play
-  sub_chain:    '\u21C4',    // ⇄ right arrow over left arrow
+  ext:          '\u25B7',    // ▷ white right-pointing triangle
+  flow:         '\u21C4',    // ⇄ right arrow over left arrow
   note:         '\u2756',    // ❖ four pointed star
 }
 
@@ -184,6 +186,7 @@ export const CUSTOM_NODE_TYPES = {
   'rf-rule': { model: RuleFlowBaseModel, view: RuleFlowBaseView },
   'rf-condition': { model: RuleFlowBaseModel, view: RuleFlowBaseView },
   'rf-action': { model: RuleFlowBaseModel, view: RuleFlowBaseView },
+  'rf-ext-action': { model: RuleFlowBaseModel, view: RuleFlowBaseView },
   'rf-sub-chain': { model: RuleFlowBaseModel, view: RuleFlowBaseView },
   'rf-note': { model: RuleFlowBaseModel, view: RuleFlowBaseView },
 }
