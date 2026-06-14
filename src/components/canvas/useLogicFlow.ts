@@ -68,6 +68,9 @@ export function useLogicFlow({
       stopScrollGraph: readOnly,
       stopZoomGraph: readOnly,
       stopMoveGraph: readOnly ? true : false,
+      // 禁用内置的调整大小和旋转工具，避免 ToolOverlay 内存泄漏警告
+      allowRotation: false,
+      allowResize: false,
     })
 
     // Register custom types
@@ -118,7 +121,24 @@ export function useLogicFlow({
       cleanup()
       if (lfRef.current) {
         try {
-          lfRef.current.destroy()
+          const lf = lfRef.current
+          // 取消选中所有节点，触发 ToolOverlay 清理
+          lf.clearSelectElements()
+          // 清理 ToolOverlay 状态，避免内存泄漏警告
+          const graphModel = lf.graphModel
+          if (graphModel) {
+            if ((graphModel as any).toolOverlay) {
+              ;(graphModel as any).toolOverlay = null
+            }
+            // 清理可能存在的 resize 和 rotation 控制点
+            if ((graphModel as any).resizeInfo) {
+              ;(graphModel as any).resizeInfo = null
+            }
+            if ((graphModel as any).rotateInfo) {
+              ;(graphModel as any).rotateInfo = null
+            }
+          }
+          lf.destroy()
         } catch (e) {
           if (import.meta.env.DEV) console.warn('[RuleFlow] lf destroy failed:', e)
         }

@@ -29,29 +29,28 @@ export function setupLogicFlowEvents(
   setAllNodes: (v: NodeData[]) => void,
 ): () => void {
   // Debounced graph update handler
-  const debouncedUpdate = (() => {
-    let timer: ReturnType<typeof setTimeout> | null = null
-    return () => {
-      if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
-        try {
-          const data = lf.getGraphData() as GraphData
-          const newNodes: NodeData[] = data?.nodes || []
-          // Shallow compare before assigning to avoid unnecessary re-renders
-          if (newNodes.length !== outlineNodes.value.length) {
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  const debouncedUpdate = () => {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      try {
+        const data = lf.getGraphData() as GraphData
+        const newNodes: NodeData[] = data?.nodes || []
+        // Shallow compare before assigning to avoid unnecessary re-renders
+        if (newNodes.length !== outlineNodes.value.length) {
+          outlineNodes.value = newNodes
+        } else {
+          const changed = newNodes.some((n, i) => n.id !== outlineNodes.value[i]?.id)
+          if (changed) {
             outlineNodes.value = newNodes
-          } else {
-            const changed = newNodes.some((n, i) => n.id !== outlineNodes.value[i]?.id)
-            if (changed) {
-              outlineNodes.value = newNodes
-            }
           }
-        } catch (e) {
-          if (import.meta.env.DEV) console.warn('[RuleFlow] graph data update failed:', e)
         }
-      }, 100)
-    }
-  })()
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn('[RuleFlow] graph data update failed:', e)
+      }
+    }, 100)
+  }
 
   // Graph updated → update stats & history state
   lf.on('graph:updated', () => {
@@ -147,6 +146,10 @@ export function setupLogicFlowEvents(
 
   // Cleanup: clear pending debounce timer
   return () => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer)
+      debounceTimer = null
+    }
     // No explicit lf.off() needed — lf.destroy() handles that
   }
 }
