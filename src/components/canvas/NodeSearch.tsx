@@ -4,17 +4,16 @@ import type { RefObject } from 'preact'
 import { Search, X, ChevronUp, ChevronDown } from 'lucide-preact'
 import { searchService } from '../../services'
 
-/** 节点数据结构 */
-interface NodeItem {
+/** Node data for search */
+interface SearchableNode {
   id: string
-  text?: string
   [key: string]: unknown
 }
 
 /** 节点搜索组件属性 */
 interface NodeSearchProps {
   /** 节点列表 */
-  nodes: NodeItem[]
+  nodes: SearchableNode[]
   /** 关闭回调 */
   onClose: () => void
   /** 定位节点回调 */
@@ -31,13 +30,15 @@ export function NodeSearch({ nodes, onClose, onLocateNode }: NodeSearchProps) {
     inputRef.current?.focus()
     // Update search service index when nodes change
     if (nodes && nodes.length > 0) {
-      searchService.updateNodeIndex(nodes)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      searchService.updateNodeIndex(nodes as any[])
     }
   }, [nodes])
 
   const results = useMemo(() => {
     if (!query.trim()) return []
-    return searchService.searchNodes(query)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return searchService.searchNodes(query) as SearchableNode[]
   }, [query, nodes])
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -75,14 +76,14 @@ export function NodeSearch({ nodes, onClose, onLocateNode }: NodeSearchProps) {
 
   return (
     <div
-      class="absolute top-2 left-1/2 -translate-x-1/2 z-[var(--rf-z-popover,300)] bg-[var(--rf-bg-elevated,#ffffff)] border border-[var(--rf-border,#e5e7eb)] rounded-[var(--rf-radius-lg,8px)] shadow-[var(--rf-shadow-lg,0_10px_15px_-3px_rgba(0,0,0,0.1))] flex items-center gap-[var(--rf-space-2,8px)] px-2.5 py-1.5 min-w-[340px] max-w-[480px] rf-fade-in font-[var(--rf-font-sans,sans-serif)]"
+      class="absolute top-2 left-1/2 -translate-x-1/2 z-[var(--rf-z-popover,300)] bg-[var(--rf-bg-elevated,#ffffff)] border border-[var(--rf-border,#e5e7eb)] rounded-[var(--rf-radius-lg,8px)] shadow-[var(--rf-shadow-md,0_4px_6px_-2px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.06))] flex items-center gap-1.5 px-2.5 py-1.5 min-w-[240px] max-w-[360px]"
       role="search"
       aria-label="搜索节点"
     >
       <Search size={14} style={{ color: 'var(--rf-text-tertiary)', flexShrink: 0 }} />
       <input
         ref={inputRef}
-        class="flex-1 border border-[var(--rf-border)] rounded-[var(--rf-radius-sm)] bg-[var(--rf-bg-secondary)] text-[var(--rf-text-primary)] text-[var(--rf-text-sm)] font-[var(--rf-font-sans)] outline-none box-border h-7 px-[var(--rf-space-2)] focus:border-[var(--rf-brand-primary)] placeholder:text-[var(--rf-text-tertiary)]"
+        class="flex-1 border border-[var(--rf-border)] rounded-[var(--rf-radius-sm)] bg-[var(--rf-bg-secondary)] text-[var(--rf-text-primary)] text-[var(--rf-text-sm)] font-[var(--rf-font-sans)] outline-none placeholder-[var(--rf-text-tertiary)] px-1.5 py-0.5"
         placeholder="搜索节点..."
         value={query}
         onInput={handleInput}
@@ -100,7 +101,7 @@ export function NodeSearch({ nodes, onClose, onLocateNode }: NodeSearchProps) {
         </span>
       )}
       <button
-        class="flex items-center justify-center w-6 h-6 border-none bg-transparent text-[var(--rf-text-tertiary,#9ca3af)] cursor-pointer rounded-[var(--rf-radius-sm)] p-0 shrink-0 hover:bg-[var(--rf-bg-hover)]"
+        class="flex items-center justify-center w-6 h-6 border-none bg-transparent text-[var(--rf-text-tertiary,#9ca3af)] cursor-pointer rounded-[var(--rf-radius-sm)] p-0 shrink-0 hover:bg-[var(--rf-bg-tertiary,#f3f4f6)]"
         onClick={navigatePrev}
         title="上一个"
         aria-label="上一个匹配"
@@ -108,7 +109,7 @@ export function NodeSearch({ nodes, onClose, onLocateNode }: NodeSearchProps) {
         <ChevronUp size={14} />
       </button>
       <button
-        class="flex items-center justify-center w-6 h-6 border-none bg-transparent text-[var(--rf-text-tertiary,#9ca3af)] cursor-pointer rounded-[var(--rf-radius-sm)] p-0 shrink-0 hover:bg-[var(--rf-bg-hover)]"
+        class="flex items-center justify-center w-6 h-6 border-none bg-transparent text-[var(--rf-text-tertiary,#9ca3af)] cursor-pointer rounded-[var(--rf-radius-sm)] p-0 shrink-0 hover:bg-[var(--rf-bg-tertiary,#f3f4f6)]"
         onClick={navigateNext}
         title="下一个"
         aria-label="下一个匹配"
@@ -116,7 +117,7 @@ export function NodeSearch({ nodes, onClose, onLocateNode }: NodeSearchProps) {
         <ChevronDown size={14} />
       </button>
       <button
-        class="flex items-center justify-center w-6 h-6 border-none bg-transparent text-[var(--rf-text-tertiary,#9ca3af)] cursor-pointer rounded-[var(--rf-radius-sm)] p-0 shrink-0 hover:bg-[var(--rf-bg-hover)]"
+        class="flex items-center justify-center w-6 h-6 border-none bg-transparent text-[var(--rf-text-tertiary,#9ca3af)] cursor-pointer rounded-[var(--rf-radius-sm)] p-0 shrink-0 hover:bg-[var(--rf-bg-tertiary,#f3f4f6)]"
         onClick={onClose}
         title="关闭"
         aria-label="关闭搜索"

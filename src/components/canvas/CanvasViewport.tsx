@@ -39,6 +39,17 @@ interface EdgeWithText extends RuleFlowEdge {
   text?: string | { value: string }
 }
 
+/** Node data structure for property bubble - compatible with both NodeData and NodeItem */
+interface NodeDataItem {
+  id?: string
+  text?: string | { value: string }
+  properties?: {
+    nodeType?: string
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
+
 interface CanvasViewportProps {
   /** Initial data to render (RuleFlowDocument or LogicFlow GraphData) */
   initialData?: RuleFlowDocument | GraphData
@@ -73,7 +84,7 @@ export function CanvasViewport({
   const containerRef = useRef<HTMLElement | null>(null)
   const lfRef = useRef<import('@logicflow/core').LogicFlow | null>(null)
   const [isEmpty, setIsEmpty] = useState(true)
-  const [allNodes, setAllNodes] = useState<NodeData[]>([])
+  const [allNodes, setAllNodes] = useState<NodeDataItem[]>([])
 
   // ── Convert initialData to GraphData for LogicFlow ──
   const resolveGraphData = useCallback((): GraphData => {
@@ -365,7 +376,7 @@ export function CanvasViewport({
         <PropertyBubble
           x={propBubble.x}
           y={propBubble.y}
-          nodeData={propBubble.nodeData}
+          nodeData={propBubble.nodeData as NodeDataItem}
           onClose={hidePropertyBubble}
           onOpenPanel={() => {
             hidePropertyBubble()
