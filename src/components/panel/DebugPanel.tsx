@@ -10,9 +10,9 @@ import {
   Clock,
   Bug,
   Database,
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  Variable,
+  ArrowDown,
+  ArrowUp,
+  Hash,
 } from 'lucide-preact'
 import {
   isDebugRunning,
@@ -323,7 +323,7 @@ export function DebugPanel() {
                   {/* Input section */}
                   {debugInput && Object.keys(debugInput).length > 0 && (
                     <DataSection
-                      icon={ArrowDownToLine}
+                      icon={ArrowDown}
                       label="输入"
                       data={debugInput}
                       color="var(--rf-brand-primary)"
@@ -332,7 +332,7 @@ export function DebugPanel() {
                   {/* Output section */}
                   {debugOutput && Object.keys(debugOutput).length > 0 && (
                     <DataSection
-                      icon={ArrowUpFromLine}
+                      icon={ArrowUp}
                       label="输出"
                       data={debugOutput}
                       color="var(--rf-status-success)"
@@ -341,7 +341,7 @@ export function DebugPanel() {
                   {/* Variables section */}
                   {debugVariables && Object.keys(debugVariables).length > 0 && (
                     <DataSection
-                      icon={Variable}
+                      icon={Hash}
                       label="变量"
                       data={debugVariables}
                       color="var(--rf-status-warning)"

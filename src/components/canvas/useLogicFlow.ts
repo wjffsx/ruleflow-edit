@@ -99,9 +99,9 @@ export function useLogicFlow({
     // P0-5: In read-only mode, disable node drag, edge creation, and deletion
     if (readOnly) {
       try {
-        const graphModel = lf.graphModel
+        const graphModel = lf.graphModel as { nodes?: any[] }
         // Disable node dragging
-        graphModel.nodes.forEach((node: any) => {
+        graphModel.nodes?.forEach((node: any) => {
           node.draggable = false
         })
       } catch (_e) {
@@ -123,7 +123,7 @@ export function useLogicFlow({
         try {
           const lf = lfRef.current
           // 取消选中所有节点，触发 ToolOverlay 清理
-          lf.clearSelectElements()
+          ;(lf as any).clearSelectElements?.()
           // 清理 ToolOverlay 状态，避免内存泄漏警告
           const graphModel = lf.graphModel
           if (graphModel) {
@@ -162,11 +162,11 @@ function injectSvgFilterDefs(container: HTMLElement | null): void {
     // Retry after a short delay if SVG not yet rendered
     setTimeout(() => {
       const retrySvg = container.querySelector('svg.lf-graph')
-      if (retrySvg) appendFilterDefs(retrySvg)
+      if (retrySvg) appendFilterDefs(retrySvg as SVGElement)
     }, 200)
     return
   }
-  appendFilterDefs(svgEl)
+  appendFilterDefs(svgEl as SVGElement)
 }
 
 function appendFilterDefs(svgEl: SVGElement): void {

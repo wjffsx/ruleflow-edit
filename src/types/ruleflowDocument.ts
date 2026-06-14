@@ -828,7 +828,9 @@ export function fromDefinitionJSON(jsonString: string): RuleFlowDocument {
   try {
     parsed = JSON.parse(jsonString)
   } catch (e) {
-    throw new Error('fromDefinitionJSON: invalid JSON content', { cause: e })
+    const err = new Error('fromDefinitionJSON: invalid JSON content')
+    ;(err as any).cause = e
+    throw err
   }
 
   if (!parsed || typeof parsed !== 'object') {

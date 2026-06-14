@@ -68,4 +68,8 @@ declare module 'lucide-preact' {
   export const Monitor: LucideIcon
   export const Pencil: LucideIcon
   export const Clock: LucideIcon
+  export const ArrowDown: LucideIcon
+  export const ArrowUp: LucideIcon
+  export const Hash: LucideIcon
+  export const Database: LucideIcon
 }

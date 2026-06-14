@@ -3,7 +3,7 @@ import { Settings, ToggleLeft, ToggleRight, Bug, X, ChevronRight, Activity } fro
 import { selectedNodeId, setActivePanelTab } from '../../store'
 import { calculateSimplePosition } from '../../services'
 import { getNodeStyle } from '../../data'
-import type { MonitorNodeState } from '../layout/RuleFlowEditor'
+import type { MonitorNodeState } from '../../layout/RuleFlowEditor'
 
 /** 属性气泡组件属性 */
 interface PropertyBubbleProps {

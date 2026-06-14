@@ -32,7 +32,7 @@ import {
 } from '../../store/canvasActions'
 import { DEMO_DATA } from '../../data'
 import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../../types/ruleflowDocument'
-import type { EditorMode, MonitorState } from '../../layout/RuleFlowEditor'
+import type { EditorMode, MonitorState, MonitorNodeState } from '../../layout/RuleFlowEditor'
 import hotkeys from 'hotkeys-js'
 
 interface CanvasViewportProps {
@@ -91,6 +91,7 @@ export function CanvasViewport({
           type: e.type,
           sourceNodeId: e.sourceNodeId,
           targetNodeId: e.targetNodeId,
+          text: (e as any).text,
           properties: e.properties,
         })),
       }
@@ -214,7 +215,7 @@ export function CanvasViewport({
       try {
         const model = lf.getNodeModelById(nodeId)
         if (model) {
-          const prev = model.properties?.monitorState
+          const prev = model.properties?.monitorState as MonitorNodeState | undefined
           if (prev?.status !== state.status || prev?.evalCount !== state.evalCount) {
             model.setProperties({ ...model.properties, monitorState: state })
           }
@@ -229,7 +230,7 @@ export function CanvasViewport({
       try {
         const model = lf.getEdgeModelById(edgeId)
         if (model) {
-          const prev = model.properties?.monitorState
+          const prev = model.properties?.monitorState as { flowRate?: number } | undefined
           if (prev?.flowRate !== state.flowRate) {
             model.setProperties({ ...model.properties, monitorState: state })
           }
@@ -365,7 +366,7 @@ export function CanvasViewport({
           }}
           monitorState={
             mode === 'monitor' && monitorState
-              ? monitorState.nodeStates[propBubble.nodeData?.id]
+              ? monitorState.nodeStates[(propBubble.nodeData as { id?: string })?.id ?? '']
               : undefined
           }
         />
