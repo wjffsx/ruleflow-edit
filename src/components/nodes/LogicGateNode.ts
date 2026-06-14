@@ -50,8 +50,9 @@ interface LogicGateInitData {
   [key: string]: unknown
 }
 
-/** Model props interface */
-interface LogicGateModelProps {
+/** Model props interface - used for type documentation */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _LogicGateModelProps {
   model: {
     id: string
     x: number

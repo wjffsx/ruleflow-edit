@@ -1,6 +1,8 @@
 import { useRef, useState, useCallback, useEffect } from 'preact/hooks'
 import type { Ref } from 'preact'
 import type { GraphData, NodeData } from '@logicflow/core'
+import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../../types/ruleflowDocument'
+import type { EditorMode, MonitorState, MonitorNodeState } from '../../layout/RuleFlowEditor'
 import { RelationTypeSelector } from './RelationTypeSelector'
 import { PropertyBubble } from './PropertyBubble'
 import { NodeSearch } from './NodeSearch'
@@ -30,14 +32,7 @@ import {
   batchToolbarState,
 } from '../../store/canvasActions'
 import { DEMO_DATA } from '../../data'
-import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../../types/ruleflowDocument'
-import type { EditorMode, MonitorState, MonitorNodeState } from '../../layout/RuleFlowEditor'
 import hotkeys from 'hotkeys-js'
-
-/** Extended edge with optional text property */
-interface EdgeWithText extends RuleFlowEdge {
-  text?: string | { value: string }
-}
 
 /** Node data structure for property bubble - compatible with both NodeData and NodeItem */
 interface NodeDataItem {
@@ -45,9 +40,16 @@ interface NodeDataItem {
   text?: string | { value: string }
   properties?: {
     nodeType?: string
+    priority?: number
+    enabled?: boolean
     [key: string]: unknown
   }
   [key: string]: unknown
+}
+
+/** Extended edge with optional text property */
+interface EdgeWithText extends RuleFlowEdge {
+  text?: string | { value: string }
 }
 
 interface CanvasViewportProps {
@@ -101,17 +103,32 @@ export function CanvasViewport({
           text: n.text,
           properties: n.properties,
         })),
-        edges: doc.edges.map((e: RuleFlowEdge) => {
-          const edgeWithText = e as EdgeWithText
-          return {
-            id: e.id,
-            type: e.type,
-            sourceNodeId: e.sourceNodeId,
-            targetNodeId: e.targetNodeId,
-            text: edgeWithText.text ?? '', // Provide default empty string if undefined
-            properties: e.properties,
-          }
-        }),
+        edges: doc.edges
+          .map((e: RuleFlowEdge) => {
+            const edgeWithText = e as EdgeWithText
+            // Filter out undefined text - LogicFlow expects string | { value: string }
+            const text = edgeWithText.text
+            const edge: {
+              id: string
+              type: string
+              sourceNodeId: string
+              targetNodeId: string
+              text?: string | { value: string }
+              properties: { relationType: typeof e.properties.relationType }
+            } = {
+              id: e.id,
+              type: e.type,
+              sourceNodeId: e.sourceNodeId,
+              targetNodeId: e.targetNodeId,
+              properties: e.properties,
+            }
+            // Only add text if it's defined
+            if (text !== undefined) {
+              edge.text = text
+            }
+            return edge
+          })
+          .filter((e) => e.id && e.sourceNodeId && e.targetNodeId) as GraphData['edges'],
       }
     }
     // Already GraphData
@@ -384,7 +401,7 @@ export function CanvasViewport({
           }}
           monitorState={
             mode === 'monitor' && monitorState
-              ? monitorState.nodeStates[(propBubble.nodeData as { id?: string })?.id ?? '']
+              ? monitorState.nodeStates[(propBubble.nodeData as NodeDataItem)?.id ?? '']
               : undefined
           }
         />
@@ -392,7 +409,14 @@ export function CanvasViewport({
 
       {/* Node search (Ctrl+F) */}
       {showSearch && (
-        <NodeSearch nodes={allNodes} onClose={hideNodeSearch} onLocateNode={handleLocateNode} />
+        <NodeSearch
+          nodes={allNodes.map((n) => ({
+            id: n.id,
+            text: typeof n.text === 'string' ? n.text : n.text?.value,
+          }))}
+          onClose={hideNodeSearch}
+          onLocateNode={handleLocateNode}
+        />
       )}
 
       {/* Batch action toolbar */}

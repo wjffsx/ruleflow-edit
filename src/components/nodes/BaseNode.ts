@@ -46,8 +46,9 @@ interface NodeInitData {
   [key: string]: unknown
 }
 
-/** Model props interface */
-interface ModelProps {
+/** Model props interface - used for type documentation */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _ModelProps {
   model: {
     id: string
     x: number

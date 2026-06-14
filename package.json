@@ -55,7 +55,10 @@
     "prepare": "husky",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "npm run build && changeset publish"
+    "release": "npm run build && changeset publish",
+    "pre-push": "pwsh -File scripts/pre-push-check.ps1",
+    "pre-push:fix": "pwsh -File scripts/pre-push-check.ps1 -Fix",
+    "pre-push:quick": "pwsh -File scripts/pre-push-check.ps1 -SkipTests -SkipBuild"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.6",

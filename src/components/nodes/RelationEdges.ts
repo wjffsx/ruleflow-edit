@@ -34,8 +34,9 @@ interface EdgeProperties {
   [key: string]: unknown
 }
 
-/** Edge model props interface */
-interface EdgeModelProps {
+/** Edge model props interface - used for type documentation */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _EdgeModelProps {
   model: {
     points: string
     properties?: EdgeProperties
