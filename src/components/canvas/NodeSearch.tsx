@@ -4,10 +4,17 @@ import type { RefObject } from 'preact'
 import { Search, X, ChevronUp, ChevronDown } from 'lucide-preact'
 import { searchService } from '../../services'
 
+/** 节点数据结构 */
+interface NodeItem {
+  id: string
+  text?: string
+  [key: string]: unknown
+}
+
 /** 节点搜索组件属性 */
 interface NodeSearchProps {
   /** 节点列表 */
-  nodes: any[]
+  nodes: NodeItem[]
   /** 关闭回调 */
   onClose: () => void
   /** 定位节点回调 */

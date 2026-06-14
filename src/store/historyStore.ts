@@ -46,7 +46,7 @@ export function syncHistoryState(): void {
       const data = lf.getGraphData()
       canUndo.value = Boolean(data?.Undo)
       canRedo.value = Boolean(data?.Redo)
-    } catch (e) {
+    } catch {
       canUndo.value = false
       canRedo.value = false
     }

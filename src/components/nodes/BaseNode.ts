@@ -21,11 +21,47 @@ const NODE_ICONS: Record<string, string> = {
   note: '\u2756', // ❖ four pointed star
 }
 
+/** Node properties interface */
+interface NodeProperties {
+  nodeType?: string
+  width?: number
+  height?: number
+  priority?: number
+  enabled?: boolean
+  debugState?: string
+  monitorState?: {
+    status?: string
+    evalCount?: number
+    matchCount?: number
+    errorCount?: number
+    avgLatencyMs?: number
+  }
+  breakpoint?: boolean
+  [key: string]: unknown
+}
+
+/** Node data interface for initNodeData */
+interface NodeInitData {
+  properties?: NodeProperties
+  [key: string]: unknown
+}
+
+/** Model props interface */
+interface ModelProps {
+  model: {
+    x: number
+    y: number
+    width: number
+    height: number
+    text?: { value: string } | string
+    properties?: NodeProperties
+  }
+}
+
 /** Base node model with shared configuration for all RuleFlow custom nodes */
 export class RuleFlowBaseModel extends RectNodeModel {
-  initNodeData(data: any) {
+  initNodeData(data: NodeInitData) {
     super.initNodeData(data)
-    const nodeType = data.properties?.nodeType || 'rule'
     this.width = data.properties?.width || 200
     this.height = data.properties?.height || 80
     this.radius = 8
@@ -53,25 +89,17 @@ export class RuleFlowBaseModel extends RectNodeModel {
 // Base node view with custom HTML rendering
 export class RuleFlowBaseView extends RectNode {
   getShape() {
-    const { model } = this.props as any
+    const { model } = this.props as ModelProps
     const { x, y, width, height } = model
     const nodeType = model.properties?.nodeType || 'rule'
-    const styleInfo = getNodeStyle(nodeType as string)
+    const styleInfo = getNodeStyle(nodeType)
     const color = styleInfo.hexColor
-    const icon = NODE_ICONS[nodeType as string] || NODE_ICONS.rule
+    const icon = NODE_ICONS[nodeType] || NODE_ICONS.rule
     const label = model.text?.value || nodeType
     const priority = model.properties?.priority || 1
     const enabled = model.properties?.enabled !== false
-    const debugState = model.properties?.debugState as string | undefined
-    const monitorState = model.properties?.monitorState as
-      | {
-          status?: string
-          evalCount?: number
-          matchCount?: number
-          errorCount?: number
-          avgLatencyMs?: number
-        }
-      | undefined
+    const debugState = model.properties?.debugState
+    const monitorState = model.properties?.monitorState
 
     // Debug state visual overrides
     const debugStroke =
@@ -115,6 +143,7 @@ export class RuleFlowBaseView extends RectNode {
     // Breakpoint marker
     const hasBreakpoint = model.properties?.breakpoint === true
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const children: any[] = [
       // Card shadow / debug glow
       h('rect', {

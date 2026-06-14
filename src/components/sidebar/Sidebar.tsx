@@ -117,8 +117,8 @@ export function Sidebar({ readOnly = false }: { readOnly?: boolean } = {}) {
   const [query, setQuery] = useState('')
   const collapsed = sidebarCollapsed.value
 
-  // Build flat list for search
-  const allItems = useMemo(() => {
+  // Build flat list for search and update search service index
+  useMemo(() => {
     const items: SearchItem[] = []
     NODE_CATEGORIES.forEach((cat) => {
       cat.items.forEach((item: NodeItem) => {
@@ -131,7 +131,6 @@ export function Sidebar({ readOnly = false }: { readOnly?: boolean } = {}) {
     items.push({ ...NOTE_NODE, category: '辅助', categoryIcon: 'MessageSquare' })
     // Update search service index
     searchService.updateSidebarItemIndex(items)
-    return items
   }, [])
 
   const searchResults = useMemo(() => {

@@ -1,9 +1,22 @@
 import { h } from 'preact'
 import { Settings, ToggleLeft, ToggleRight, Bug, X, ChevronRight, Activity } from 'lucide-preact'
-import { selectedNodeId, setActivePanelTab } from '../../store'
 import { calculateSimplePosition } from '../../services'
 import { getNodeStyle } from '../../data'
 import type { MonitorNodeState } from '../../layout/RuleFlowEditor'
+
+/** Node data structure for property bubble */
+interface NodeDataItem {
+  id?: string
+  text?: string | { value: string }
+  properties?: {
+    nodeType?: string
+    priority?: number
+    enabled?: boolean
+    summary?: string
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
 
 /** 属性气泡组件属性 */
 interface PropertyBubbleProps {
@@ -12,7 +25,7 @@ interface PropertyBubbleProps {
   /** 气泡 Y 坐标 */
   y: number
   /** 节点数据 */
-  nodeData: any
+  nodeData: NodeDataItem
   /** 关闭回调 */
   onClose: () => void
   /** 打开面板回调 */

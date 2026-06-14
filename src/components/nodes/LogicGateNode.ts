@@ -10,7 +10,6 @@
  * - Color: purple/violet accent matching condition category
  */
 import { RectNode, RectNodeModel, h } from '@logicflow/core'
-import { getNodeStyle } from '../../data'
 
 /** Logic gate operator types */
 export type LogicGateOp = 'AND' | 'OR' | 'NOT'
@@ -34,9 +33,38 @@ const OP_CONFIG: Record<LogicGateOp, { symbol: string; color: string; bgColor: s
   },
 }
 
+/** Logic gate node properties */
+interface LogicGateProperties {
+  collapsed?: boolean
+  conditionOp?: LogicGateOp
+  childCount?: number
+  debugState?: string
+  breakpoint?: boolean
+  summary?: string
+  [key: string]: unknown
+}
+
+/** Node data interface for initNodeData */
+interface LogicGateInitData {
+  properties?: LogicGateProperties
+  [key: string]: unknown
+}
+
+/** Model props interface */
+interface LogicGateModelProps {
+  model: {
+    x: number
+    y: number
+    width: number
+    height: number
+    text?: { value: string } | string
+    properties?: LogicGateProperties
+  }
+}
+
 /** Logic gate node model */
 export class LogicGateModel extends RectNodeModel {
-  initNodeData(data: any) {
+  initNodeData(data: LogicGateInitData) {
     super.initNodeData(data)
     this.width = data.properties?.collapsed ? 140 : 180
     this.height = data.properties?.collapsed ? 56 : 80
@@ -65,14 +93,14 @@ export class LogicGateModel extends RectNodeModel {
 /** Logic gate node view with hexagonal-style rendering */
 export class LogicGateView extends RectNode {
   getShape() {
-    const { model } = this.props as any
+    const { model } = this.props as LogicGateModelProps
     const { x, y, width, height } = model
     const op = (model.properties?.conditionOp || 'AND') as LogicGateOp
     const config = OP_CONFIG[op] || OP_CONFIG.AND
     const collapsed = model.properties?.collapsed === true
     const label = model.text?.value || op
     const childCount = model.properties?.childCount || 0
-    const debugState = model.properties?.debugState as string | undefined
+    const debugState = model.properties?.debugState
     const hasBreakpoint = model.properties?.breakpoint === true
 
     // Debug state visual overrides
@@ -100,6 +128,7 @@ export class LogicGateView extends RectNode {
       `${x - hw},${y}`, // left
     ].join(' ')
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const children: any[] = [
       // Hexagonal background shape
       h('polygon', {

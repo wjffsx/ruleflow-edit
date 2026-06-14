@@ -105,7 +105,7 @@ export class SimulationEngine implements DebugEngine {
     this.callback = callback
   }
 
-  async start(breakpoints: string[]): Promise<void> {
+  async start(_breakpoints: string[]): Promise<void> {
     const lf = lfInstance.value
     if (!lf) return
     this.lf = lf
@@ -253,9 +253,9 @@ export class SimulationEngine implements DebugEngine {
   // ── P1-4: Simulated debug data generators ──
 
   /** Generate simulated input data based on node type */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private generateSimInput(model: any): Record<string, unknown> {
     const role = model.properties?.roleInRule as string
-    const nodeType = model.properties?.nodeType as string
     if (role === 'input') return { source: 'VPPTU Core', timestamp: Date.now() }
     if (role === 'output') return { target: 'VPPTU Storage' }
     if (role === 'action') {

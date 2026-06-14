@@ -1,5 +1,5 @@
 import { h } from 'preact'
-import { Copy, Trash2, ToggleLeft, Group, Ungroup } from 'lucide-preact'
+import { Copy, Trash2, ToggleLeft, Group } from 'lucide-preact'
 import { calculateSimplePosition } from '../../services'
 
 /** 批量操作工具栏属性 */

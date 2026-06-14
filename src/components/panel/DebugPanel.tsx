@@ -14,6 +14,7 @@ import {
   ArrowUp,
   Hash,
 } from 'lucide-preact'
+import type { ComponentType } from 'preact'
 import {
   isDebugRunning,
   isDebugPaused,
@@ -39,7 +40,7 @@ function DataSection({
   data,
   color,
 }: {
-  icon: any
+  icon: ComponentType<{ size?: number }>
   label: string
   data: Record<string, unknown>
   color: string

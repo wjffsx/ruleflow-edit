@@ -4,7 +4,7 @@ import { LogicFlow, type GraphData } from '@logicflow/core'
 import { MiniMap, Snapshot, SelectionSelect } from '@logicflow/extension'
 import '@logicflow/core/dist/index.css'
 import '@logicflow/extension/dist/index.css'
-import { RuleFlowBaseModel, RuleFlowBaseView, CUSTOM_NODE_TYPES } from '../nodes/BaseNode'
+import { CUSTOM_NODE_TYPES } from '../nodes/BaseNode'
 import {
   RelationEdgeModel,
   RelationEdgeView,
@@ -99,8 +99,10 @@ export function useLogicFlow({
     // P0-5: In read-only mode, disable node drag, edge creation, and deletion
     if (readOnly) {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const graphModel = lf.graphModel as { nodes?: any[] }
         // Disable node dragging
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         graphModel.nodes?.forEach((node: any) => {
           node.draggable = false
         })
@@ -123,18 +125,25 @@ export function useLogicFlow({
         try {
           const lf = lfRef.current
           // 取消选中所有节点，触发 ToolOverlay 清理
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ;(lf as any).clearSelectElements?.()
           // 清理 ToolOverlay 状态，避免内存泄漏警告
           const graphModel = lf.graphModel
           if (graphModel) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if ((graphModel as any).toolOverlay) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ;(graphModel as any).toolOverlay = null
             }
             // 清理可能存在的 resize 和 rotation 控制点
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if ((graphModel as any).resizeInfo) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ;(graphModel as any).resizeInfo = null
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if ((graphModel as any).rotateInfo) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ;(graphModel as any).rotateInfo = null
             }
           }

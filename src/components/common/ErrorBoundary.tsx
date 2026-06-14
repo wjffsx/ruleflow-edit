@@ -14,6 +14,11 @@ interface ErrorBoundaryState {
   error: Error | null
 }
 
+/** Error info from Preact */
+interface ErrorInfo {
+  componentStack?: string
+}
+
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
@@ -24,7 +29,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('[RuleFlow Editor] ErrorBoundary caught:', error, errorInfo)
   }
 

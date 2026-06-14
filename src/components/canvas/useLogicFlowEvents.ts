@@ -4,7 +4,6 @@ import {
   type NodeData,
   type NodeClickEvent,
   type EdgeAddEvent,
-  type EdgeClickEvent,
   type SelectionEvent,
 } from '@logicflow/core'
 import {
@@ -70,7 +69,7 @@ export function setupLogicFlowEvents(
   })
 
   // Node click → select & show property bubble
-  lf.on('node:click', ({ data, e }: NodeClickEvent) => {
+  lf.on('node:click', ({ data }: NodeClickEvent) => {
     selectedNodeId.value = data.id
     // Show property bubble near clicked node
     try {
@@ -115,7 +114,7 @@ export function setupLogicFlowEvents(
   })
 
   // Edge click → deselect node
-  lf.on('edge:click', ({ data }: EdgeClickEvent) => {
+  lf.on('edge:click', () => {
     selectedNodeId.value = null
   })
 

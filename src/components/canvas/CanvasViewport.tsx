@@ -14,7 +14,6 @@ import {
   selectedNodeId,
   selectedNodeIds,
   setActivePanelTab,
-  lfInstance,
   debugNodeStates,
   debugBreakpoints,
   isDebugRunning,
@@ -34,6 +33,11 @@ import { DEMO_DATA } from '../../data'
 import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../../types/ruleflowDocument'
 import type { EditorMode, MonitorState, MonitorNodeState } from '../../layout/RuleFlowEditor'
 import hotkeys from 'hotkeys-js'
+
+/** Extended edge with optional text property */
+interface EdgeWithText extends RuleFlowEdge {
+  text?: string | { value: string }
+}
 
 interface CanvasViewportProps {
   /** Initial data to render (RuleFlowDocument or LogicFlow GraphData) */
@@ -59,12 +63,12 @@ export function CanvasViewport({
   readOnly = false,
   mode = 'edit',
   monitorState,
-  onDataChange,
-  onNodeAdd,
-  onNodeDelete,
-  onNodeUpdate,
-  onEdgeAdd,
-  onEdgeDelete,
+  onDataChange: _onDataChange,
+  onNodeAdd: _onNodeAdd,
+  onNodeDelete: _onNodeDelete,
+  onNodeUpdate: _onNodeUpdate,
+  onEdgeAdd: _onEdgeAdd,
+  onEdgeDelete: _onEdgeDelete,
 }: CanvasViewportProps = {}) {
   const containerRef = useRef<HTMLElement | null>(null)
   const lfRef = useRef<import('@logicflow/core').LogicFlow | null>(null)
@@ -86,14 +90,17 @@ export function CanvasViewport({
           text: n.text,
           properties: n.properties,
         })),
-        edges: doc.edges.map((e) => ({
-          id: e.id,
-          type: e.type,
-          sourceNodeId: e.sourceNodeId,
-          targetNodeId: e.targetNodeId,
-          text: (e as any).text,
-          properties: e.properties,
-        })),
+        edges: doc.edges.map((e: RuleFlowEdge) => {
+          const edgeWithText = e as EdgeWithText
+          return {
+            id: e.id,
+            type: e.type,
+            sourceNodeId: e.sourceNodeId,
+            targetNodeId: e.targetNodeId,
+            text: edgeWithText.text,
+            properties: e.properties,
+          }
+        }),
       }
     }
     // Already GraphData

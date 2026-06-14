@@ -3,7 +3,6 @@
  * Uses sonner, aligned with VPPTU Editor's addToast pattern.
  */
 import { toast, Toaster } from 'sonner'
-import type { ComponentChild } from 'preact'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 

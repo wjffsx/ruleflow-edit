@@ -22,6 +22,26 @@ const RELATION_LABELS: Record<string, string> = {
   Custom: '自定义',
 }
 
+/** Edge properties interface */
+interface EdgeProperties {
+  relationType?: string
+  debugExecuted?: boolean
+  monitorState?: {
+    flowRate?: number
+    errorRate?: number
+    avgLatencyMs?: number
+  }
+  [key: string]: unknown
+}
+
+/** Edge model props interface */
+interface EdgeModelProps {
+  model: {
+    points: string
+    properties?: EdgeProperties
+  }
+}
+
 /** Custom polyline edge model with relation-type color coding */
 export class RelationEdgeModel extends PolylineEdgeModel {
   getEdgeStyle() {
@@ -53,21 +73,14 @@ export class RelationEdgeModel extends PolylineEdgeModel {
 // Custom edge view with label and debug highlighting
 export class RelationEdgeView extends PolylineEdge {
   getEdge() {
-    const { model } = this.props as any
+    const { model } = this.props as EdgeModelProps
     const { points, properties } = model
     const relation = properties?.relationType || 'default'
-    const color = RELATION_COLORS[relation as string] || RELATION_COLORS.default
-    const label = RELATION_LABELS[relation as string] || ''
+    const color = RELATION_COLORS[relation] || RELATION_COLORS.default
     const isDebugExecuted = properties?.debugExecuted === true
 
     // P0-2: Monitor state edge metrics
-    const monitorState = properties?.monitorState as
-      | {
-          flowRate?: number
-          errorRate?: number
-          avgLatencyMs?: number
-        }
-      | undefined
+    const monitorState = properties?.monitorState
 
     let strokeWidth = isDebugExecuted ? 3.5 : 2
     let strokeColor = color
