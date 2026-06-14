@@ -131,7 +131,15 @@ describe('nodeRegistry', () => {
 
   describe('TYPE_ORDER', () => {
     it('should contain all visual categories in order', () => {
-      expect(TYPE_ORDER).toEqual(['port', 'condition', 'action', 'ext', 'flow', 'note'])
+      expect(TYPE_ORDER).toEqual([
+        'port',
+        'condition',
+        'logic_gate',
+        'action',
+        'ext',
+        'flow',
+        'note',
+      ])
     })
   })
 })
