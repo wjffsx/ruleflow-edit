@@ -172,11 +172,24 @@ export class SimulationEngine implements DebugEngine {
       // Mark current as processing
       setDebugNodeState(nodeId, 'processing')
 
-      // Resolve node name
+      // Resolve node name and write simulated debug data to node properties
       let nodeName: string = nodeId
       try {
         const model = lf!.getNodeModelById(nodeId)
-        if (model) nodeName = typeof model.text === 'object' ? model.text.value : model.text
+        if (model) {
+          nodeName = typeof model.text === 'object' ? model.text.value : model.text
+
+          // P1-4: Generate simulated debug data for the node
+          const simInput = this.generateSimInput(model)
+          const simOutput = this.generateSimOutput(model)
+          const simVariables = this.generateSimVariables(model)
+          model.setProperties({
+            ...model.properties,
+            debugInput: simInput,
+            debugOutput: simOutput,
+            debugVariables: simVariables,
+          })
+        }
       } catch (_e) {
         if (import.meta.env.DEV) console.warn('[RuleFlow] node model lookup failed:', _e)
       }
@@ -234,6 +247,57 @@ export class SimulationEngine implements DebugEngine {
   private notifyStateChange(): void {
     if (this.callback) {
       this.callback(getDebugStateSnapshot())
+    }
+  }
+
+  // ── P1-4: Simulated debug data generators ──
+
+  /** Generate simulated input data based on node type */
+  private generateSimInput(model: any): Record<string, unknown> {
+    const role = model.properties?.roleInRule as string
+    const nodeType = model.properties?.nodeType as string
+    if (role === 'input') return { source: 'VPPTU Core', timestamp: Date.now() }
+    if (role === 'output') return { target: 'VPPTU Storage' }
+    if (role === 'action') {
+      const actionType = model.properties?.actionType as string
+      return { actionType, triggered: true, payload: { value: 42.5, unit: '°C' } }
+    }
+    if (role === 'logic_gate') {
+      const op = model.properties?.conditionOp as string
+      return { operator: op, childCount: model.properties?.childCount ?? 0 }
+    }
+    // condition leaf
+    const leafType = model.properties?.leafType as string
+    return {
+      pointName: model.properties?.leafConfig?.point_name ?? 'unknown',
+      currentValue: +(Math.random() * 100).toFixed(1),
+      leafType: leafType || 'unknown',
+    }
+  }
+
+  /** Generate simulated output data based on node type */
+  private generateSimOutput(model: any): Record<string, unknown> {
+    const role = model.properties?.roleInRule as string
+    if (role === 'input') return { status: 'connected', nodeCount: 0 }
+    if (role === 'output') return { status: 'written' }
+    if (role === 'action') return { result: 'executed', timestamp: Date.now() }
+    if (role === 'logic_gate') {
+      const passed = Math.random() > 0.3
+      return { result: passed ? 'passed' : 'failed', matchedChildren: passed ? 2 : 0 }
+    }
+    // condition leaf
+    const passed = Math.random() > 0.4
+    return { matched: passed, reason: passed ? '条件满足' : '条件不满足' }
+  }
+
+  /** Generate simulated variables for the node execution context */
+  private generateSimVariables(model: any): Record<string, unknown> {
+    const role = model.properties?.roleInRule as string
+    if (role === 'input' || role === 'output') return {}
+    return {
+      executionTime: `${(Math.random() * 5 + 0.1).toFixed(1)}ms`,
+      ruleId: model.properties?.ruleId ?? '',
+      enabled: model.properties?.enabled ?? true,
     }
   }
 }

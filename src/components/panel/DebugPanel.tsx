@@ -10,6 +10,9 @@ import {
   Clock,
   Bug,
   Database,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Variable,
 } from 'lucide-preact'
 import {
   isDebugRunning,
@@ -28,6 +31,43 @@ import {
   lfInstance,
 } from '../../store'
 import { startDebugWithEngine, countStates, clearSimulationInterval } from './debugSimulation'
+
+/** Reusable data section component for node data inspection */
+function DataSection({
+  icon: Icon,
+  label,
+  data,
+  color,
+}: {
+  icon: any
+  label: string
+  data: Record<string, unknown>
+  color: string
+}) {
+  return (
+    <div class="rounded-[var(--rf-radius-md,6px)] overflow-hidden border border-[var(--rf-border-light,#f3f4f6)]">
+      <div
+        class="flex items-center gap-1 px-2 py-1 text-[var(--rf-text-2xs,9px)] font-semibold"
+        style={{ color, background: 'var(--rf-bg-secondary)' }}
+      >
+        <Icon size={10} />
+        {label}
+      </div>
+      <div class="px-2 py-1.5 font-[var(--rf-font-mono,monospace)] text-[var(--rf-text-2xs,9px)]">
+        {Object.entries(data).map(([key, value]) => (
+          <div key={key} class="flex gap-1 py-0.5">
+            <span style={{ color }} class="shrink-0">
+              {key}:
+            </span>
+            <span class="text-[var(--rf-text-primary)] break-all">
+              {typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export function DebugPanel() {
   const running = isDebugRunning.value
@@ -194,30 +234,52 @@ export function DebugPanel() {
       {/* P1-4: Node data inspection */}
       {running &&
         (() => {
-          // Find the currently processing node
-          const processingNodeId =
-            Object.entries(states).find(([, s]) => s === 'processing')?.[0] || debugNodeId.value
-          if (!processingNodeId) return null
+          // Find the currently processing or last-executed node
+          const processingEntry = Object.entries(states).find(([, s]) => s === 'processing')
+          const successEntries = Object.entries(states).filter(([, s]) => s === 'success')
+          const targetNodeId =
+            processingEntry?.[0] ||
+            (successEntries.length > 0
+              ? successEntries[successEntries.length - 1][0]
+              : debugNodeId.value)
+          if (!targetNodeId) return null
 
           const lf = lfInstance.value
-          let nodeData: Record<string, unknown> | null = null
-          let nodeName = processingNodeId
+          let nodeName = targetNodeId
+          let debugInput: Record<string, unknown> | undefined
+          let debugOutput: Record<string, unknown> | undefined
+          let debugVariables: Record<string, unknown> | undefined
+          let nodeState: string | undefined
+
           if (lf) {
             try {
-              const model = lf.getNodeModelById(processingNodeId)
+              const model = lf.getNodeModelById(targetNodeId)
               if (model) {
                 nodeName =
                   typeof model.text === 'object'
                     ? (model.text as any).value
                     : (model.text as string)
-                nodeData = {
-                  ...((model.properties?.debugOutput as Record<string, unknown>) || {}),
-                  ...((model.properties?.debugVariables as Record<string, unknown>) || {}),
-                }
+                debugInput = model.properties?.debugInput as Record<string, unknown> | undefined
+                debugOutput = model.properties?.debugOutput as Record<string, unknown> | undefined
+                debugVariables = model.properties?.debugVariables as
+                  | Record<string, unknown>
+                  | undefined
+                nodeState = states[targetNodeId]
               }
             } catch (_e) {
               /* skip */
             }
+          }
+
+          const hasAnyData =
+            (debugInput && Object.keys(debugInput).length > 0) ||
+            (debugOutput && Object.keys(debugOutput).length > 0) ||
+            (debugVariables && Object.keys(debugVariables).length > 0)
+
+          const stateColorMap: Record<string, string> = {
+            processing: 'var(--rf-status-processing)',
+            success: 'var(--rf-status-success)',
+            failure: 'var(--rf-status-danger)',
           }
 
           return (
@@ -226,23 +288,69 @@ export function DebugPanel() {
                 <Database size={12} />
                 节点数据
               </div>
-              <div class="text-[var(--rf-text-sm,11px)] text-[var(--rf-brand-primary)] font-semibold mb-1">
-                {nodeName}
+              <div class="flex items-center gap-1.5 mb-2">
+                <span class="text-[var(--rf-text-sm,11px)] text-[var(--rf-brand-primary)] font-semibold">
+                  {nodeName}
+                </span>
+                {nodeState && (
+                  <span
+                    class="text-[var(--rf-text-2xs,9px)] px-1.5 py-0.5 rounded-[var(--rf-radius-sm,3px)] font-semibold"
+                    style={{
+                      color: stateColorMap[nodeState] || 'var(--rf-text-tertiary)',
+                      background:
+                        nodeState === 'processing'
+                          ? 'var(--rf-status-processing-light)'
+                          : nodeState === 'success'
+                            ? 'var(--rf-status-success-light)'
+                            : nodeState === 'failure'
+                              ? 'var(--rf-status-danger-light)'
+                              : 'var(--rf-bg-tertiary)',
+                    }}
+                  >
+                    {nodeState === 'processing'
+                      ? '执行中'
+                      : nodeState === 'success'
+                        ? '已通过'
+                        : nodeState === 'failure'
+                          ? '已失败'
+                          : nodeState}
+                  </span>
+                )}
               </div>
-              {nodeData && Object.keys(nodeData).length > 0 ? (
-                <div class="bg-[var(--rf-bg-secondary)] rounded-[var(--rf-radius-md,6px)] p-[var(--rf-space-2,8px)] font-[var(--rf-font-mono,monospace)] text-[var(--rf-text-2xs,9px)] max-h-[120px] overflow-y-auto">
-                  {Object.entries(nodeData).map(([key, value]) => (
-                    <div key={key} class="flex gap-1 py-0.5">
-                      <span class="text-[var(--rf-brand-primary)] shrink-0">{key}:</span>
-                      <span class="text-[var(--rf-text-primary)] break-all">
-                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                      </span>
-                    </div>
-                  ))}
+
+              {hasAnyData ? (
+                <div class="flex flex-col gap-2">
+                  {/* Input section */}
+                  {debugInput && Object.keys(debugInput).length > 0 && (
+                    <DataSection
+                      icon={ArrowDownToLine}
+                      label="输入"
+                      data={debugInput}
+                      color="var(--rf-brand-primary)"
+                    />
+                  )}
+                  {/* Output section */}
+                  {debugOutput && Object.keys(debugOutput).length > 0 && (
+                    <DataSection
+                      icon={ArrowUpFromLine}
+                      label="输出"
+                      data={debugOutput}
+                      color="var(--rf-status-success)"
+                    />
+                  )}
+                  {/* Variables section */}
+                  {debugVariables && Object.keys(debugVariables).length > 0 && (
+                    <DataSection
+                      icon={Variable}
+                      label="变量"
+                      data={debugVariables}
+                      color="var(--rf-status-warning)"
+                    />
+                  )}
                 </div>
               ) : (
                 <div class="text-[var(--rf-text-tertiary)] text-[var(--rf-text-2xs,9px)]">
-                  暂无数据（节点执行完成后显示输出）
+                  暂无数据（节点执行后显示输入/输出/变量）
                 </div>
               )}
             </div>
