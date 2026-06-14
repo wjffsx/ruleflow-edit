@@ -73,7 +73,8 @@ export class RelationEdgeModel extends PolylineEdgeModel {
 // Custom edge view with label and debug highlighting
 export class RelationEdgeView extends PolylineEdge {
   getEdge() {
-    const { model } = this.props as EdgeModelProps
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { model } = this.props as any as EdgeModelProps
     const { points, properties } = model
     const relation = properties?.relationType || 'default'
     const color = RELATION_COLORS[relation] || RELATION_COLORS.default
@@ -107,6 +108,7 @@ export class RelationEdgeView extends PolylineEdge {
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const attrs: Record<string, any> = {
       points,
       stroke: strokeColor,
@@ -162,6 +164,7 @@ export class ConditionTreeEdgeModel extends PolylineEdgeModel {
 /** Custom edge view for condition tree connections */
 export class ConditionTreeEdgeView extends PolylineEdge {
   getEdge() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { model } = this.props as any
     const { points } = model
 
