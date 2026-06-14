@@ -34,6 +34,18 @@ export interface RuleChainOutput {
   group?: string
   scope?: 'per_device' | 'global'
   inputPoints?: string[]
+  description?: string
+}
+
+/** Input definition for a rule chain (Phase 1) */
+export interface RuleChainInput {
+  pointName: string
+  displayName?: string
+  pointType: string
+  dataType: string
+  unit?: string
+  group?: string
+  description?: string
 }
 
 /** Node in the unified graph */
@@ -83,6 +95,16 @@ export interface RuleFlowNode {
     /** Condition summary text */
     summary?: string
 
+    // ── Rule-level fields (stored on root condition node) ──
+    /** Rule description */
+    ruleDescription?: string
+    /** Input bindings for this rule */
+    inputBindings?: string[]
+    /** Input mode: single or multi */
+    inputMode?: 'single' | 'multi'
+    /** Route targets */
+    targets?: string[]
+
     // ── Logic gate specific ──
     /** Whether the logic gate node is collapsed */
     collapsed?: boolean
@@ -112,13 +134,17 @@ export interface RuleFlowDocument {
   root: boolean
   evaluationMode: EvaluationMode
   description?: string
+  version?: number
+  status?: string
+  pipelineType?: string
+
+  // ── Input/Output definitions ──
+  inputs?: RuleChainInput[]
+  outputs?: RuleChainOutput[]
 
   // ── Graph data (editor native format) ──
   nodes: RuleFlowNode[]
   edges: RuleFlowEdge[]
-
-  // ── Output definitions ──
-  outputs?: RuleChainOutput[]
 }
 
 // ── YAML Compatibility (single-direction, non-core) ──────────────
@@ -194,7 +220,7 @@ export function fromYAML(yamlString: string): RuleFlowDocument {
 
   const chain = parsed.chain || parsed
   const rules = parsed.rules || []
-  const outputs = parsed.outputs || []
+  const outputs = parsed.outputs || chain.outputs || []
 
   // Reset ID counter for deterministic output
   resetIdCounter()
@@ -232,6 +258,12 @@ export function fromYAML(yamlString: string): RuleFlowDocument {
     const condition = rule.condition
     let conditionNodeId: string
 
+    // Rule-level fields to store on root condition node
+    const ruleDescription = rule.description || ''
+    const inputBindings = rule.input_bindings || rule.inputBindings || undefined
+    const inputMode = rule.input_mode || rule.inputMode || undefined
+    const targets = rule.targets || undefined
+
     if (condition) {
       conditionNodeId = processCondition(
         condition,
@@ -244,6 +276,14 @@ export function fromYAML(yamlString: string): RuleFlowDocument {
         LAYOUT.startX + (ruleCol + 1) * LAYOUT.colSpacing,
         LAYOUT.startY,
       )
+      // Attach rule-level fields to the root condition node
+      const condNode = nodes.find((n) => n.id === conditionNodeId)
+      if (condNode) {
+        if (ruleDescription) condNode.properties.ruleDescription = ruleDescription
+        if (inputBindings) condNode.properties.inputBindings = inputBindings
+        if (inputMode) condNode.properties.inputMode = inputMode
+        if (targets) condNode.properties.targets = targets
+      }
     } else {
       // No condition — create a default pass-through
       conditionNodeId = nextId('node')
@@ -262,6 +302,10 @@ export function fromYAML(yamlString: string): RuleFlowDocument {
           priority,
           conditionOp: 'leaf',
           summary: '无条件（始终通过）',
+          ruleDescription: ruleDescription || undefined,
+          inputBindings,
+          inputMode,
+          targets,
         },
       })
     }
@@ -362,6 +406,18 @@ export function fromYAML(yamlString: string): RuleFlowDocument {
     })
   }
 
+  // ── Parse inputs ──
+  const rawInputs = chain.inputs || []
+  const inputs: RuleChainInput[] = rawInputs.map((inp: Record<string, any>) => ({
+    pointName: inp.point_name || inp.pointName || '',
+    displayName: inp.display_name || inp.displayName,
+    pointType: inp.point_type || inp.pointType || 'analog',
+    dataType: inp.data_type || inp.dataType || 'double',
+    unit: inp.unit,
+    group: inp.group,
+    description: inp.description,
+  }))
+
   // ── Build document ──
   return {
     chainId: chain.id || chain.chainId || 'unnamed',
@@ -370,6 +426,10 @@ export function fromYAML(yamlString: string): RuleFlowDocument {
     root: chain.root === true,
     evaluationMode: chain.evaluation_mode || chain.evaluationMode || 'all',
     description: chain.description || '',
+    version: chain.version ?? undefined,
+    status: chain.status || undefined,
+    pipelineType: chain.pipeline_type || chain.pipelineType || undefined,
+    inputs: inputs.length > 0 ? inputs : undefined,
     nodes,
     edges,
     outputs: outputs.map((o: Record<string, any>) => ({
@@ -381,6 +441,7 @@ export function fromYAML(yamlString: string): RuleFlowDocument {
       group: o.group,
       scope: o.scope,
       inputPoints: o.input_points || o.inputPoints,
+      description: o.description,
     })),
   }
 }
@@ -400,10 +461,16 @@ function processCondition(
   baseX: number,
   baseY: number,
 ): string {
-  const op = condition.op || 'leaf'
+  // 兼容 op / operator 两种键名
+  const op = (condition.op || condition.operator || 'leaf').toLowerCase()
+  // 兼容 conditions / children 两种键名
+  const childConditions = condition.conditions || condition.children || []
 
   // Leaf condition — single rf-condition node
-  if (op === 'leaf' || (!condition.op && !condition.conditions)) {
+  if (
+    op === 'leaf' ||
+    (!condition.op && !condition.operator && !condition.conditions && !condition.children)
+  ) {
     const nodeId = nextId('node')
     const leafType = condition.leaf_type || condition.type || 'expr_filter'
     const summary = condition.summary || leafType
@@ -433,15 +500,16 @@ function processCondition(
 
   // Logic gate condition (AND/OR/NOT) — rf-logic-gate node + child conditions
   const gateNodeId = nextId('node')
-  const childConditions = condition.conditions || []
   const childCount = childConditions.length
+  // 内部存储使用大写 AND/OR/NOT
+  const opUpper = op.toUpperCase() as ConditionOp
 
   nodes.push({
     id: gateNodeId,
     type: 'rf-logic-gate',
     x: baseX,
     y: baseY,
-    text: `${op} 条件组`,
+    text: `${opUpper} 条件组`,
     properties: {
       nodeType: 'logic_gate',
       icon: 'GitBranch',
@@ -449,10 +517,10 @@ function processCondition(
       ruleId,
       roleInRule: 'logic_gate',
       priority,
-      conditionOp: op as ConditionOp,
+      conditionOp: opUpper,
       collapsed: false,
       childCount,
-      summary: `${op}(${childCount} 个子条件)`,
+      summary: `${opUpper}(${childCount} 个子条件)`,
     },
   })
 
@@ -486,7 +554,8 @@ function processCondition(
 
 /**
  * Convert a RuleFlowDocument to VPPTU rulechain YAML string.
- * This is a one-time export function for human-readable output.
+ * Builds a JavaScript object matching the YAML structure, then serializes
+ * with `yaml.dump()` for clean, spec-compliant output.
  *
  * Handles recursive LogicGate (AND/OR/NOT) nodes by following
  * condition-tree-edge connections to reconstruct nested conditions.
@@ -525,8 +594,63 @@ export function toYAML(doc: RuleFlowDocument): string {
     rulesMap.get(ruleId)!.push(node)
   }
 
-  // Build YAML structure
-  const rules: string[] = []
+  // ── Build chain object ──
+  const chainObj: Record<string, any> = {
+    id: doc.chainId,
+    name: doc.chainName,
+    root: doc.root,
+    enabled: doc.enabled,
+  }
+  if (doc.version != null) {
+    chainObj.version = doc.version
+  }
+  if (doc.status) {
+    chainObj.status = doc.status
+  }
+  if (doc.pipelineType) {
+    chainObj.pipeline_type = doc.pipelineType
+  }
+  if (doc.evaluationMode) {
+    chainObj.evaluation_mode = doc.evaluationMode
+  }
+  if (doc.description) {
+    chainObj.description = doc.description
+  }
+  if (doc.inputs && doc.inputs.length > 0) {
+    chainObj.inputs = doc.inputs.map((inp) => {
+      const inputObj: Record<string, any> = {
+        point_name: inp.pointName,
+        point_type: inp.pointType,
+        data_type: inp.dataType,
+      }
+      if (inp.displayName) inputObj.display_name = inp.displayName
+      if (inp.unit) inputObj.unit = inp.unit
+      if (inp.group) inputObj.group = inp.group
+      if (inp.description) inputObj.description = inp.description
+      return inputObj
+    })
+  }
+  if (doc.outputs && doc.outputs.length > 0) {
+    chainObj.outputs = doc.outputs.map((o) => {
+      const outputObj: Record<string, any> = {
+        point_name: o.pointName,
+        display_name: o.displayName,
+        point_type: o.pointType,
+        data_type: o.dataType,
+      }
+      if (o.unit != null) outputObj.unit = o.unit
+      if (o.group) outputObj.group = o.group
+      if (o.scope) outputObj.scope = o.scope
+      if (o.inputPoints && o.inputPoints.length > 0) {
+        outputObj.input_points = [...o.inputPoints]
+      }
+      if (o.description) outputObj.description = o.description
+      return outputObj
+    })
+  }
+
+  // ── Build rules array ──
+  const rulesArray: Record<string, any>[] = []
 
   for (const [ruleId, nodes] of rulesMap) {
     const actionNodes = nodes
@@ -549,106 +673,106 @@ export function toYAML(doc: RuleFlowDocument): string {
       nodes.find((n) => n.properties.roleInRule === 'condition') ||
       nodes.find((n) => n.properties.roleInRule === 'logic_gate')
 
-    let yaml = `  - id: ${ruleId}\n`
-    yaml += `    name: "${condNode?.text || anyCondNode?.text || ruleId}"\n`
-    yaml += `    priority: ${condNode?.properties.priority ?? anyCondNode?.properties.priority ?? 0}\n`
-    yaml += `    enabled: ${condNode?.properties.enabled ?? anyCondNode?.properties.enabled ?? true}\n`
+    const ruleObj: Record<string, any> = {
+      id: ruleId,
+      name: condNode?.text || anyCondNode?.text || ruleId,
+      priority: condNode?.properties.priority ?? anyCondNode?.properties.priority ?? 0,
+      enabled: condNode?.properties.enabled ?? anyCondNode?.properties.enabled ?? true,
+    }
+
+    // Rule-level fields from root condition node
+    const rootCondProps = condNode?.properties
+    if (rootCondProps?.ruleDescription) {
+      ruleObj.description = rootCondProps.ruleDescription
+    }
+    if (rootCondProps?.inputBindings && rootCondProps.inputBindings.length > 0) {
+      ruleObj.input_bindings = [...rootCondProps.inputBindings]
+    }
+    if (rootCondProps?.inputMode) {
+      ruleObj.input_mode = rootCondProps.inputMode
+    }
+    if (rootCondProps?.targets && rootCondProps.targets.length > 0) {
+      ruleObj.targets = [...rootCondProps.targets]
+    }
 
     // Build condition block
     if (condNode) {
-      yaml += `    condition:\n`
-      yaml += buildConditionYAML(condNode.id, nodeMap, childrenMap, '      ')
+      ruleObj.condition = buildConditionObject(condNode.id, nodeMap, childrenMap)
     }
 
     if (actionNodes.length > 0) {
-      yaml += `    actions:\n`
-      for (const action of actionNodes) {
-        yaml += `      - type: "${action.properties.actionType}"\n`
+      ruleObj.actions = actionNodes.map((action) => {
+        const actionObj: Record<string, any> = {
+          type: action.properties.actionType,
+        }
         if (
           action.properties.actionConfig &&
           Object.keys(action.properties.actionConfig).length > 0
         ) {
-          yaml += `        config:\n`
-          for (const [key, value] of Object.entries(action.properties.actionConfig)) {
-            yaml += `          ${key}: ${JSON.stringify(value)}\n`
-          }
+          actionObj.config = { ...action.properties.actionConfig }
         }
-      }
+        return actionObj
+      })
     }
 
-    rules.push(yaml)
+    rulesArray.push(ruleObj)
   }
 
-  let output = `chain:\n`
-  output += `  id: ${doc.chainId}\n`
-  output += `  name: "${doc.chainName}"\n`
-  output += `  root: ${doc.root}\n`
-  output += `  enabled: ${doc.enabled}\n`
-  if (doc.evaluationMode) {
-    output += `  evaluation_mode: ${doc.evaluationMode}\n`
-  }
-  if (doc.description) {
-    output += `  description: "${doc.description}"\n`
-  }
-  output += `\nrules:\n`
-  output += rules.join('\n')
-
-  if (doc.outputs && doc.outputs.length > 0) {
-    output += `\noutputs:\n`
-    for (const o of doc.outputs) {
-      output += `  - point_name: ${o.pointName}\n`
-      output += `    display_name: "${o.displayName}"\n`
-      output += `    point_type: ${o.pointType}\n`
-      output += `    data_type: ${o.dataType}\n`
-    }
+  // ── Serialize to YAML ──
+  const yamlObj = {
+    chain: chainObj,
+    rules: rulesArray,
   }
 
-  return output
+  return yaml.dump(yamlObj, {
+    lineWidth: -1,
+    noRefs: true,
+    sortKeys: false,
+    quotingType: '"',
+    forceQuotes: false,
+  })
 }
 
 /**
- * Recursively build YAML condition block for a node.
- * Leaf conditions produce leaf_type/leaf_config.
- * Logic gates (AND/OR/NOT) produce op + nested conditions.
+ * Recursively build a condition object for YAML serialization.
+ * Leaf conditions produce { operator: 'leaf', leaf_type, leaf_config }.
+ * Logic gates (AND/OR/NOT) produce { operator: 'and'|'or'|'not', children: [...] }.
  */
-function buildConditionYAML(
+function buildConditionObject(
   nodeId: string,
   nodeMap: Map<string, RuleFlowNode>,
   childrenMap: Map<string, string[]>,
-  indent: string,
-): string {
+): Record<string, any> {
   const node = nodeMap.get(nodeId)
-  if (!node) return ''
+  if (!node) return {}
 
   const op = node.properties.conditionOp
 
   // Leaf condition
   if (op === 'leaf' || (!op && node.properties.roleInRule === 'condition')) {
-    let yaml = `${indent}op: leaf\n`
+    const result: Record<string, any> = {
+      operator: 'leaf',
+    }
     if (node.properties.leafType) {
-      yaml += `${indent}leaf_type: "${node.properties.leafType}"\n`
+      result.leaf_type = node.properties.leafType
     }
     if (node.properties.leafConfig && Object.keys(node.properties.leafConfig).length > 0) {
-      yaml += `${indent}leaf_config:\n`
-      for (const [key, value] of Object.entries(node.properties.leafConfig)) {
-        yaml += `${indent}  ${key}: ${JSON.stringify(value)}\n`
-      }
+      result.leaf_config = { ...node.properties.leafConfig }
     }
-    return yaml
+    return result
   }
 
-  // Logic gate condition (AND/OR/NOT)
-  let yaml = `${indent}op: ${op}\n`
+  // Logic gate condition (AND/OR/NOT) — 输出小写操作符以兼容 Go 引擎
+  const opLower = (op || 'and').toLowerCase()
+  const result: Record<string, any> = {
+    operator: opLower,
+  }
   const childIds = childrenMap.get(nodeId) || []
   if (childIds.length > 0) {
-    yaml += `${indent}conditions:\n`
-    for (const childId of childIds) {
-      yaml += `${indent}  - \n`
-      yaml += buildConditionYAML(childId, nodeMap, childrenMap, `${indent}    `)
-    }
+    result.children = childIds.map((childId) => buildConditionObject(childId, nodeMap, childrenMap))
   }
 
-  return yaml
+  return result
 }
 
 /** Create an empty RuleFlowDocument with default values */
@@ -659,8 +783,11 @@ export function createEmptyDocument(chainId: string, chainName: string): RuleFlo
     enabled: true,
     root: false,
     evaluationMode: 'all',
+    version: 1,
+    status: 'draft',
     nodes: [],
     edges: [],
+    inputs: [],
     outputs: [],
   }
 }
@@ -761,15 +888,14 @@ export function fromDefinitionJSON(jsonString: string): RuleFlowDocument {
 function normalizeConditionKeys(condition: Record<string, any>): Record<string, any> {
   const result: Record<string, any> = {
     ...condition,
-    op: condition.op || condition.conditionOp || 'leaf',
+    op: condition.op || condition.operator || 'leaf',
     leaf_type: condition.leaf_type || condition.leafType,
     leaf_config: condition.leaf_config || condition.leafConfig || condition.config,
   }
 
-  if (condition.conditions) {
-    result.conditions = condition.conditions.map((c: Record<string, any>) =>
-      normalizeConditionKeys(c),
-    )
+  const children = condition.conditions || condition.children
+  if (children) {
+    result.conditions = children.map((c: Record<string, any>) => normalizeConditionKeys(c))
   }
 
   return result

@@ -1,6 +1,6 @@
 {
   "name": "ruleflow-edit",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "description": "Visual rule chain editor for IIoT and VPP scenarios, built with Preact and LogicFlow",
   "license": "MIT",
@@ -27,7 +27,7 @@
   ],
   "main": "dist/ruleflow-edit.cjs.js",
   "module": "dist/ruleflow-edit.es.js",
-  "types": "dist/index.d.ts",
+  "types": "dist/src/index.d.ts",
   "files": [
     "dist"
   ],
@@ -36,8 +36,9 @@
     ".": {
       "import": "./dist/ruleflow-edit.es.js",
       "require": "./dist/ruleflow-edit.cjs.js",
-      "types": "./dist/index.d.ts"
-    }
+      "types": "./dist/src/index.d.ts"
+    },
+    "./dist/ruleflow-edit.css": "./dist/ruleflow-edit.css"
   },
   "scripts": {
     "dev": "vite",
