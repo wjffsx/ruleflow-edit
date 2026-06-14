@@ -664,3 +664,113 @@ export function createEmptyDocument(chainId: string, chainName: string): RuleFlo
     outputs: [],
   }
 }
+
+/**
+ * Parse rule chain definition from JSON string (web backend format).
+ *
+ * The web backend stores `RuleChainData.definition` as a JSON string.
+ * The structure is similar to YAML but uses camelCase keys and may
+ * have a slightly different nesting. This function normalizes it to
+ * RuleFlowDocument.
+ *
+ * Expected JSON structure:
+ * ```json
+ * {
+ *   "chain": { "id": "...", "name": "...", "root": true, "enabled": true, "evaluationMode": "all" },
+ *   "rules": [
+ *     {
+ *       "id": "rule-1", "name": "Rule 1", "priority": 1, "enabled": true,
+ *       "condition": { "op": "AND", "conditions": [...] },
+ *       "actions": [{ "type": "alarm_notify_ext", "config": {} }]
+ *     }
+ *   ],
+ *   "outputs": [{ "pointName": "...", "displayName": "..." }]
+ * }
+ * ```
+ *
+ * Also supports the YAML-compatible snake_case format (auto-detected):
+ * ```json
+ * { "chain": { "evaluation_mode": "all" }, "rules": [...] }
+ * ```
+ *
+ * @param jsonString - The JSON content of a rulechain definition
+ * @returns A RuleFlowDocument ready for the editor
+ */
+export function fromDefinitionJSON(jsonString: string): RuleFlowDocument {
+  let parsed: Record<string, any>
+  try {
+    parsed = JSON.parse(jsonString)
+  } catch (e) {
+    throw new Error('fromDefinitionJSON: invalid JSON content', { cause: e })
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('fromDefinitionJSON: parsed result is not an object')
+  }
+
+  // Normalize camelCase ↔ snake_case keys so fromYAML can process it
+  const chain = parsed.chain || parsed
+  const rules = parsed.rules || []
+  const outputs = parsed.outputs || []
+
+  // Normalize chain keys
+  const normalizedChain = {
+    ...chain,
+    id: chain.id || chain.chainId || '',
+    name: chain.name || chain.chainName || '',
+    evaluation_mode: chain.evaluation_mode || chain.evaluationMode || 'all',
+  }
+
+  // Normalize rule keys
+  const normalizedRules = rules.map((rule: Record<string, any>) => ({
+    ...rule,
+    condition: rule.condition ? normalizeConditionKeys(rule.condition) : undefined,
+    actions: (rule.actions || []).map((action: Record<string, any>) => ({
+      ...action,
+      config: action.config || action.actionConfig || {},
+    })),
+  }))
+
+  // Normalize output keys
+  const normalizedOutputs = outputs.map((o: Record<string, any>) => ({
+    point_name: o.point_name || o.pointName || '',
+    display_name: o.display_name || o.displayName || '',
+    point_type: o.point_type || o.pointType || 'virtual',
+    data_type: o.data_type || o.dataType || 'float64',
+    unit: o.unit,
+    group: o.group,
+    scope: o.scope,
+    input_points: o.input_points || o.inputPoints,
+  }))
+
+  // Re-serialize to YAML-compatible format and delegate to fromYAML
+  const yamlCompatible = {
+    chain: normalizedChain,
+    rules: normalizedRules,
+    outputs: normalizedOutputs,
+  }
+
+  // Use JSON.stringify → fromYAML (fromYAML uses yaml.load which handles JSON too)
+  return fromYAML(JSON.stringify(yamlCompatible))
+}
+
+/**
+ * Recursively normalize condition keys from camelCase to snake_case
+ * for YAML-compatible processing by fromYAML.
+ */
+function normalizeConditionKeys(condition: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {
+    ...condition,
+    op: condition.op || condition.conditionOp || 'leaf',
+    leaf_type: condition.leaf_type || condition.leafType,
+    leaf_config: condition.leaf_config || condition.leafConfig || condition.config,
+  }
+
+  if (condition.conditions) {
+    result.conditions = condition.conditions.map((c: Record<string, any>) =>
+      normalizeConditionKeys(c),
+    )
+  }
+
+  return result
+}

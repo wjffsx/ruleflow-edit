@@ -60,18 +60,51 @@ export class RelationEdgeView extends PolylineEdge {
     const label = RELATION_LABELS[relation as string] || ''
     const isDebugExecuted = properties?.debugExecuted === true
 
-    const attrs: Record<string, any> = {
-      points,
-      stroke: color,
-      strokeWidth: isDebugExecuted ? 3.5 : 2,
-      fill: 'none',
-      strokeDasharray: relation === 'TargetRoute' ? '8 4' : '',
+    // P0-2: Monitor state edge metrics
+    const monitorState = properties?.monitorState as
+      | {
+          flowRate?: number
+          errorRate?: number
+          avgLatencyMs?: number
+        }
+      | undefined
+
+    let strokeWidth = isDebugExecuted ? 3.5 : 2
+    let strokeColor = color
+    let strokeOpacity = 1
+    let filterAttr: string | undefined
+
+    if (isDebugExecuted) {
+      filterAttr = 'url(#rf-debug-pulse)'
+      strokeOpacity = 0.9
     }
 
-    // P1-3: Debug glow filter for executed edges
-    if (isDebugExecuted) {
-      attrs.filter = 'url(#rf-debug-pulse)'
-      attrs.strokeOpacity = 0.9
+    // Monitor state overrides: high-traffic edges get thicker + glow
+    if (monitorState) {
+      if (monitorState.flowRate !== undefined && monitorState.flowRate > 0) {
+        // Scale width: 2 at 0 flow, up to 5 at high flow
+        strokeWidth = Math.min(2 + monitorState.flowRate * 0.3, 5)
+        if (monitorState.flowRate > 5) {
+          filterAttr = 'url(#rf-debug-success-glow)'
+        }
+      }
+      if (monitorState.errorRate !== undefined && monitorState.errorRate > 0.1) {
+        strokeColor = 'var(--rf-status-danger, #dc2626)'
+        strokeOpacity = 0.8
+      }
+    }
+
+    const attrs: Record<string, any> = {
+      points,
+      stroke: strokeColor,
+      strokeWidth,
+      fill: 'none',
+      strokeDasharray: relation === 'TargetRoute' ? '8 4' : '',
+      strokeOpacity,
+    }
+
+    if (filterAttr) {
+      attrs.filter = filterAttr
     }
 
     return h('g', {}, [h('polyline', attrs)])

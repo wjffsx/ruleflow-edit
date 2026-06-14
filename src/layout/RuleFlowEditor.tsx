@@ -56,6 +56,42 @@ export interface ToastAdapter {
   info(message: string): void
 }
 
+/** Editor display mode */
+export type EditorMode = 'edit' | 'view' | 'monitor'
+
+/** Runtime monitoring state for continuous observation */
+export interface MonitorNodeState {
+  status: 'running' | 'error' | 'idle' | 'disabled'
+  /** Evaluation count */
+  evalCount?: number
+  /** Match count */
+  matchCount?: number
+  /** Error count */
+  errorCount?: number
+  /** Average latency in ms */
+  avgLatencyMs?: number
+  /** Last evaluation timestamp */
+  lastEvalAt?: string
+  /** Custom metrics for display */
+  metrics?: Record<string, number | string>
+}
+
+export interface MonitorEdgeState {
+  /** Flow rate (events/sec) */
+  flowRate?: number
+  /** Error rate (0-1) */
+  errorRate?: number
+  /** Average latency in ms */
+  avgLatencyMs?: number
+}
+
+export interface MonitorState {
+  /** Per-node runtime state and metrics */
+  nodeStates: Record<string, MonitorNodeState>
+  /** Per-edge runtime metrics */
+  edgeStates: Record<string, MonitorEdgeState>
+}
+
 /** RuleFlowEditor component props */
 export interface RuleFlowEditorProps {
   // ── Data ──
@@ -79,6 +115,8 @@ export interface RuleFlowEditorProps {
   showStatusBar?: boolean
   /** Read-only mode (default: false) */
   readOnly?: boolean
+  /** Editor mode: 'edit' = full editing, 'view' = read-only with hidden edit UI, 'monitor' = view + real-time data overlay (default: 'edit') */
+  mode?: EditorMode
 
   // ── Debug ──
   /** Callback when debug starts */
@@ -87,6 +125,10 @@ export interface RuleFlowEditorProps {
   onDebugStep?: (nodeId: string) => void
   /** External debug state injection */
   debugState?: DebugState
+
+  // ── Monitoring ──
+  /** Runtime monitoring state for continuous observation (web scenario) */
+  monitorState?: MonitorState
 
   // ── Style ──
   /** Theme mode */
@@ -147,6 +189,7 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     showToolbar = true,
     showStatusBar = true,
     readOnly = false,
+    mode,
     theme: themeProp,
     className,
     style,
@@ -161,7 +204,17 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     onNodeUpdate,
     onEdgeAdd,
     onEdgeDelete,
+    monitorState,
   } = props
+
+  // ── Derive effective mode and readOnly ──
+  const effectiveMode: EditorMode = mode || (readOnly ? 'view' : 'edit')
+  const effectiveReadOnly = effectiveMode !== 'edit'
+
+  // P0-1: In view/monitor mode, auto-hide editing UI
+  const effectiveShowSidebar = effectiveMode === 'edit' ? showSidebar : false
+  const effectiveShowToolbar = effectiveMode === 'edit' ? showToolbar : false
+  const effectiveShowDebugPanel = effectiveMode === 'edit' ? showDebugPanel : false
 
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -356,7 +409,7 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
 
   // ── Compute grid-template-columns ──
   let gridCols: string
-  if (focused) {
+  if (focused || effectiveMode !== 'edit') {
     gridCols = '0 1fr 0'
   } else if (!showSidebar && noPanel) {
     gridCols = '0 1fr 0'
@@ -408,7 +461,8 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
       ref={containerRef}
       class={[
         'grid h-full overflow-hidden bg-[var(--rf-bg-primary)] text-[var(--rf-text-primary)] font-[var(--rf-font-sans)] text-[var(--rf-text-base)]',
-        readOnly ? 'rf-readonly' : '',
+        effectiveReadOnly ? 'rf-readonly' : '',
+        effectiveMode === 'monitor' ? 'rf-monitor' : '',
         className,
       ]
         .filter(Boolean)
@@ -423,11 +477,13 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
       tabIndex={-1}
     >
       {showNavbar && <Navbar />}
-      {showToolbar && <Toolbar />}
-      {showSidebar && <Sidebar readOnly={readOnly} />}
+      {effectiveShowToolbar && <Toolbar />}
+      {effectiveShowSidebar && <Sidebar readOnly={effectiveReadOnly} />}
       <CanvasViewport
         initialData={props.initialData}
-        readOnly={readOnly}
+        readOnly={effectiveReadOnly}
+        mode={effectiveMode}
+        monitorState={monitorState}
         onDataChange={onDataChange}
         onNodeAdd={onNodeAdd}
         onNodeDelete={onNodeDelete}
@@ -435,8 +491,8 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
         onEdgeAdd={onEdgeAdd}
         onEdgeDelete={onEdgeDelete}
       />
-      {showDebugPanel && !focused && (
-        <RightPanel propertyRenderer={props.propertyRenderer} readOnly={readOnly} />
+      {effectiveShowDebugPanel && !focused && (
+        <RightPanel propertyRenderer={props.propertyRenderer} readOnly={effectiveReadOnly} />
       )}
       {showStatusBar && <StatusBar />}
 

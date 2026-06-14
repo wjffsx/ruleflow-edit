@@ -1,8 +1,9 @@
 import { h } from 'preact'
-import { Settings, ToggleLeft, ToggleRight, Bug, X, ChevronRight } from 'lucide-preact'
+import { Settings, ToggleLeft, ToggleRight, Bug, X, ChevronRight, Activity } from 'lucide-preact'
 import { selectedNodeId, setActivePanelTab } from '../../store'
 import { calculateSimplePosition } from '../../services'
 import { getNodeStyle } from '../../data'
+import type { MonitorNodeState } from '../layout/RuleFlowEditor'
 
 /** 属性气泡组件属性 */
 interface PropertyBubbleProps {
@@ -16,10 +17,19 @@ interface PropertyBubbleProps {
   onClose: () => void
   /** 打开面板回调 */
   onOpenPanel: () => void
+  /** Monitor state for this node (P1-1) */
+  monitorState?: MonitorNodeState
 }
 
 /** 属性气泡组件 */
-export function PropertyBubble({ x, y, nodeData, onClose, onOpenPanel }: PropertyBubbleProps) {
+export function PropertyBubble({
+  x,
+  y,
+  nodeData,
+  onClose,
+  onOpenPanel,
+  monitorState,
+}: PropertyBubbleProps) {
   if (!nodeData) return null
 
   const { text, properties } = nodeData
@@ -84,6 +94,69 @@ export function PropertyBubble({ x, y, nodeData, onClose, onOpenPanel }: Propert
           </div>
         </div>
       </div>
+
+      {/* P1-1: Monitor metrics section */}
+      {monitorState && (
+        <div class="px-2.5 py-1.5 border-t border-[var(--rf-border-light,#f3f4f6)]">
+          <div
+            class="flex items-center gap-1 mb-1 text-[var(--rf-text-2xs,9px)] font-semibold"
+            style={{
+              color:
+                monitorState.status === 'running'
+                  ? 'var(--rf-status-success)'
+                  : monitorState.status === 'error'
+                    ? 'var(--rf-status-danger)'
+                    : 'var(--rf-text-tertiary)',
+            }}
+          >
+            <Activity size={10} />
+            {monitorState.status === 'running'
+              ? '运行中'
+              : monitorState.status === 'error'
+                ? '错误'
+                : monitorState.status === 'disabled'
+                  ? '已禁用'
+                  : '空闲'}
+          </div>
+          <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[var(--rf-text-2xs,9px)] font-[var(--rf-font-mono,monospace)]">
+            {monitorState.evalCount !== undefined && (
+              <div class="flex justify-between">
+                <span class="text-[var(--rf-text-tertiary)]">eval</span>
+                <span class="text-[var(--rf-text-primary)]">{monitorState.evalCount}</span>
+              </div>
+            )}
+            {monitorState.matchCount !== undefined && (
+              <div class="flex justify-between">
+                <span class="text-[var(--rf-text-tertiary)]">match</span>
+                <span class="text-[var(--rf-text-primary)]">{monitorState.matchCount}</span>
+              </div>
+            )}
+            {monitorState.errorCount !== undefined && (
+              <div class="flex justify-between">
+                <span class="text-[var(--rf-text-tertiary)]">err</span>
+                <span
+                  style={{
+                    color:
+                      monitorState.errorCount > 0
+                        ? 'var(--rf-status-danger)'
+                        : 'var(--rf-text-primary)',
+                  }}
+                >
+                  {monitorState.errorCount}
+                </span>
+              </div>
+            )}
+            {monitorState.avgLatencyMs !== undefined && (
+              <div class="flex justify-between">
+                <span class="text-[var(--rf-text-tertiary)]">latency</span>
+                <span class="text-[var(--rf-text-primary)]">
+                  {monitorState.avgLatencyMs.toFixed(1)}ms
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Open panel action */}
       <button

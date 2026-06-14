@@ -63,6 +63,15 @@ export class RuleFlowBaseView extends RectNode {
     const priority = model.properties?.priority || 1
     const enabled = model.properties?.enabled !== false
     const debugState = model.properties?.debugState as string | undefined
+    const monitorState = model.properties?.monitorState as
+      | {
+          status?: string
+          evalCount?: number
+          matchCount?: number
+          errorCount?: number
+          avgLatencyMs?: number
+        }
+      | undefined
 
     // Debug state visual overrides
     const debugStroke =
@@ -74,17 +83,34 @@ export class RuleFlowBaseView extends RectNode {
             ? 'var(--rf-status-danger, #dc2626)'
             : color
 
-    const debugStrokeWidth = debugState ? 2.5 : 1
-
-    // Debug state glow filter
-    const debugFilter =
-      debugState === 'processing'
+    let effectiveStroke = debugState ? debugStroke : color
+    let effectiveStrokeWidth = debugState ? 2.5 : 1
+    let effectiveFilter = debugState
+      ? debugState === 'processing'
         ? 'url(#rf-debug-pulse)'
         : debugState === 'success'
           ? 'url(#rf-debug-success-glow)'
-          : debugState === 'failure'
-            ? 'url(#rf-debug-failure-glow)'
-            : 'url(#rf-shadow-sm)'
+          : 'url(#rf-debug-failure-glow)'
+      : 'url(#rf-shadow-sm)'
+
+    // P0-2: Monitor state visual overrides (takes precedence over debug when present)
+    if (monitorState) {
+      const mStatus = monitorState.status
+      if (mStatus === 'running') {
+        effectiveStroke = 'var(--rf-status-success, #16a34a)'
+        effectiveStrokeWidth = 2.5
+        effectiveFilter = 'url(#rf-debug-success-glow)'
+      } else if (mStatus === 'error') {
+        effectiveStroke = 'var(--rf-status-danger, #dc2626)'
+        effectiveStrokeWidth = 2.5
+        effectiveFilter = 'url(#rf-debug-failure-glow)'
+      } else if (mStatus === 'disabled') {
+        effectiveStroke = 'var(--rf-text-tertiary, #9ca3af)'
+        effectiveStrokeWidth = 1
+        effectiveFilter = 'url(#rf-shadow-sm)'
+      }
+      // idle keeps default style
+    }
 
     // Breakpoint marker
     const hasBreakpoint = model.properties?.breakpoint === true
@@ -99,9 +125,9 @@ export class RuleFlowBaseView extends RectNode {
         rx: 8,
         ry: 8,
         fill: 'var(--rf-bg-primary, #ffffff)',
-        stroke: debugStroke,
-        strokeWidth: debugStrokeWidth,
-        filter: debugFilter,
+        stroke: effectiveStroke,
+        strokeWidth: effectiveStrokeWidth,
+        filter: effectiveFilter,
       }),
       // Color bar at top (4px)
       h('rect', {
@@ -111,7 +137,7 @@ export class RuleFlowBaseView extends RectNode {
         height: 4,
         rx: 8,
         ry: 8,
-        fill: debugState ? debugStroke : color,
+        fill: debugState ? debugStroke : monitorState ? effectiveStroke : color,
         clipPath: `url(#rf-topbar-${model.id})`,
       }),
       // Clip path for top bar
@@ -130,7 +156,7 @@ export class RuleFlowBaseView extends RectNode {
           x: x - width / 2 + 14,
           y: y - height / 2 + 24,
           fontSize: 14,
-          fill: debugState ? debugStroke : color,
+          fill: debugState ? debugStroke : monitorState ? effectiveStroke : color,
           fontFamily: 'var(--rf-font-sans, sans-serif)',
           textAnchor: 'middle',
         },
@@ -266,6 +292,61 @@ export class RuleFlowBaseView extends RectNode {
           stateIcon,
         ),
       )
+    }
+
+    // P0-2: Monitor state metrics overlay (below the node)
+    if (
+      monitorState &&
+      (monitorState.evalCount !== undefined ||
+        monitorState.errorCount !== undefined ||
+        monitorState.avgLatencyMs !== undefined)
+    ) {
+      const parts: string[] = []
+      if (monitorState.evalCount !== undefined) parts.push(`eval: ${monitorState.evalCount}`)
+      if (monitorState.errorCount !== undefined && monitorState.errorCount > 0)
+        parts.push(`err: ${monitorState.errorCount}`)
+      if (monitorState.avgLatencyMs !== undefined)
+        parts.push(`${monitorState.avgLatencyMs.toFixed(1)}ms`)
+      const metricsText = parts.join(' | ')
+
+      if (metricsText) {
+        children.push(
+          // Background pill
+          h('rect', {
+            x: x - width / 2 + 4,
+            y: y + height / 2 + 4,
+            width: width - 8,
+            height: 16,
+            rx: 4,
+            fill:
+              monitorState.status === 'error'
+                ? 'var(--rf-status-danger, #dc2626)'
+                : monitorState.status === 'running'
+                  ? 'var(--rf-status-success, #16a34a)'
+                  : 'var(--rf-bg-tertiary, #f3f4f6)',
+            fillOpacity: 0.12,
+          }),
+          // Metrics text
+          h(
+            'text',
+            {
+              x: x,
+              y: y + height / 2 + 15,
+              fontSize: 8,
+              fill:
+                monitorState.status === 'error'
+                  ? 'var(--rf-status-danger, #dc2626)'
+                  : monitorState.status === 'running'
+                    ? 'var(--rf-status-success, #16a34a)'
+                    : 'var(--rf-text-tertiary, #9ca3af)',
+              fontFamily: 'var(--rf-font-data, var(--rf-font-mono, monospace))',
+              textAnchor: 'middle',
+              fontWeight: 500,
+            },
+            metricsText,
+          ),
+        )
+      }
     }
 
     return h('g', {}, children)

@@ -41,7 +41,13 @@ export type {
   EvaluationMode,
 } from './types/ruleflowDocument'
 
-export { fromYAML, toYAML, createEmptyDocument, resetIdCounter } from './types/ruleflowDocument'
+export {
+  fromYAML,
+  toYAML,
+  createEmptyDocument,
+  resetIdCounter,
+  fromDefinitionJSON,
+} from './types/ruleflowDocument'
 
 export type {
   NodeData,
@@ -57,7 +63,15 @@ export type {
 // ── Components ─────────────────────────────────────────────────────
 export { App } from './app'
 export { RuleFlowEditor } from './layout/RuleFlowEditor'
-export type { RuleFlowEditorProps, DebugState, ToastAdapter } from './layout/RuleFlowEditor'
+export type {
+  RuleFlowEditorProps,
+  DebugState,
+  ToastAdapter,
+  EditorMode,
+  MonitorState,
+  MonitorNodeState,
+  MonitorEdgeState,
+} from './layout/RuleFlowEditor'
 export { CommandPalette } from './components/canvas/CommandPalette'
 export { EmptyState } from './components/canvas/EmptyState'
 export { NodeSearch } from './components/canvas/NodeSearch'
