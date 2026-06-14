@@ -51,7 +51,7 @@ interface LogicGateInitData {
 }
 
 /** Model props interface - used for type documentation */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 interface _LogicGateModelProps {
   model: {
     id: string
@@ -96,12 +96,17 @@ export class LogicGateModel extends RectNodeModel {
 export class LogicGateView extends RectNode {
   getShape() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { model } = this.props as any as LogicGateModelProps
+    const { model } = this.props as any as _LogicGateModelProps
     const { x, y, width, height, id } = model
     const op = (model.properties?.conditionOp || 'AND') as LogicGateOp
     const config = OP_CONFIG[op] || OP_CONFIG.AND
     const collapsed = model.properties?.collapsed === true
-    const textValue = typeof model.text === 'object' && model.text?.value ? model.text.value : (typeof model.text === 'string' ? model.text : op)
+    const textValue =
+      typeof model.text === 'object' && model.text?.value
+        ? model.text.value
+        : typeof model.text === 'string'
+          ? model.text
+          : op
     const childCount = model.properties?.childCount || 0
     const debugState = model.properties?.debugState
     const hasBreakpoint = model.properties?.breakpoint === true

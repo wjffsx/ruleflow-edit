@@ -35,7 +35,7 @@ interface EdgeProperties {
 }
 
 /** Edge model props interface - used for type documentation */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 interface _EdgeModelProps {
   model: {
     points: string
@@ -75,7 +75,7 @@ export class RelationEdgeModel extends PolylineEdgeModel {
 export class RelationEdgeView extends PolylineEdge {
   getEdge() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { model } = this.props as any as EdgeModelProps
+    const { model } = this.props as any as _EdgeModelProps
     const { points, properties } = model
     const relation = properties?.relationType || 'default'
     const color = RELATION_COLORS[relation] || RELATION_COLORS.default

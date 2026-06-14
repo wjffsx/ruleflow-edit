@@ -47,7 +47,7 @@ interface NodeInitData {
 }
 
 /** Model props interface - used for type documentation */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 interface _ModelProps {
   model: {
     id: string
@@ -92,13 +92,18 @@ export class RuleFlowBaseModel extends RectNodeModel {
 export class RuleFlowBaseView extends RectNode {
   getShape() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { model } = this.props as any as ModelProps
+    const { model } = this.props as any as _ModelProps
     const { x, y, width, height, id } = model
     const nodeType = model.properties?.nodeType || 'rule'
     const styleInfo = getNodeStyle(nodeType)
     const color = styleInfo.hexColor
     const icon = NODE_ICONS[nodeType] || NODE_ICONS.rule
-    const textValue = typeof model.text === 'object' && model.text?.value ? model.text.value : (typeof model.text === 'string' ? model.text : nodeType)
+    const textValue =
+      typeof model.text === 'object' && model.text?.value
+        ? model.text.value
+        : typeof model.text === 'string'
+          ? model.text
+          : nodeType
     const priority = model.properties?.priority || 1
     const enabled = model.properties?.enabled !== false
     const debugState = model.properties?.debugState

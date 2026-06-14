@@ -410,10 +410,12 @@ export function CanvasViewport({
       {/* Node search (Ctrl+F) */}
       {showSearch && (
         <NodeSearch
-          nodes={allNodes.map((n) => ({
-            id: n.id,
-            text: typeof n.text === 'string' ? n.text : n.text?.value,
-          }))}
+          nodes={allNodes
+            .filter((n) => n.id)
+            .map((n) => ({
+              id: n.id!,
+              text: typeof n.text === 'string' ? n.text : n.text?.value,
+            }))}
           onClose={hideNodeSearch}
           onLocateNode={handleLocateNode}
         />
