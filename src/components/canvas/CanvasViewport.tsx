@@ -97,7 +97,7 @@ export function CanvasViewport({
             type: e.type,
             sourceNodeId: e.sourceNodeId,
             targetNodeId: e.targetNodeId,
-            text: edgeWithText.text,
+            text: edgeWithText.text ?? '', // Provide default empty string if undefined
             properties: e.properties,
           }
         }),
@@ -425,7 +425,7 @@ export function CanvasViewport({
 
       {/* P1-2: Monitor status legend */}
       {mode === 'monitor' && (
-        <div class="absolute bottom-3 right-14 flex items-center gap-3 bg-[var(--rf-bg-elevated,#ffffff)] border border-[var(--rf-border,#e5e7eb)] rounded-[var(--rf-radius-md,6px)] px-3 py-1.5 text-[var(--rf-text-2xs,9px)] shadow-[var(--rf-shadow-sm)] z-[var(--rf-z-popover,300)]">
+        <div class="absolute bottom-3 right-14 flex items-center gap-3 bg-[var(--rf-bg-elevated,#ffffff)] border border-[var(--rf-border,#e5e7eb)] rounded-[var(--rf-radius-md,6px)] px-3 py-1.5 text-[var(--rf-text-2xs,9px)]">
           <span class="flex items-center gap-1">
             <span class="inline-block w-2 h-2 rounded-full bg-[var(--rf-status-success,#16a34a)]" />
             运行中

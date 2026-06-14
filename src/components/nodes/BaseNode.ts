@@ -49,6 +49,7 @@ interface NodeInitData {
 /** Model props interface */
 interface ModelProps {
   model: {
+    id: string
     x: number
     y: number
     width: number
@@ -89,13 +90,14 @@ export class RuleFlowBaseModel extends RectNodeModel {
 // Base node view with custom HTML rendering
 export class RuleFlowBaseView extends RectNode {
   getShape() {
-    const { model } = this.props as ModelProps
-    const { x, y, width, height } = model
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { model } = this.props as any as ModelProps
+    const { x, y, width, height, id } = model
     const nodeType = model.properties?.nodeType || 'rule'
     const styleInfo = getNodeStyle(nodeType)
     const color = styleInfo.hexColor
     const icon = NODE_ICONS[nodeType] || NODE_ICONS.rule
-    const label = model.text?.value || nodeType
+    const textValue = typeof model.text === 'object' && model.text?.value ? model.text.value : (typeof model.text === 'string' ? model.text : nodeType)
     const priority = model.properties?.priority || 1
     const enabled = model.properties?.enabled !== false
     const debugState = model.properties?.debugState
@@ -167,10 +169,10 @@ export class RuleFlowBaseView extends RectNode {
         rx: 8,
         ry: 8,
         fill: debugState ? debugStroke : monitorState ? effectiveStroke : color,
-        clipPath: `url(#rf-topbar-${model.id})`,
+        clipPath: `url(#rf-topbar-${id})`,
       }),
       // Clip path for top bar
-      h('clipPath', { id: `rf-topbar-${model.id}` }, [
+      h('clipPath', { id: `rf-topbar-${id}` }, [
         h('rect', {
           x: x - width / 2,
           y: y - height / 2,
@@ -202,7 +204,7 @@ export class RuleFlowBaseView extends RectNode {
           fontFamily: 'var(--rf-font-sans, sans-serif)',
           fontWeight: 500,
         },
-        label,
+        textValue,
       ),
       // Priority badge
       h('rect', {

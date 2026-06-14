@@ -53,6 +53,7 @@ interface LogicGateInitData {
 /** Model props interface */
 interface LogicGateModelProps {
   model: {
+    id: string
     x: number
     y: number
     width: number
@@ -93,12 +94,13 @@ export class LogicGateModel extends RectNodeModel {
 /** Logic gate node view with hexagonal-style rendering */
 export class LogicGateView extends RectNode {
   getShape() {
-    const { model } = this.props as LogicGateModelProps
-    const { x, y, width, height } = model
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { model } = this.props as any as LogicGateModelProps
+    const { x, y, width, height, id } = model
     const op = (model.properties?.conditionOp || 'AND') as LogicGateOp
     const config = OP_CONFIG[op] || OP_CONFIG.AND
     const collapsed = model.properties?.collapsed === true
-    const label = model.text?.value || op
+    const textValue = typeof model.text === 'object' && model.text?.value ? model.text.value : (typeof model.text === 'string' ? model.text : op)
     const childCount = model.properties?.childCount || 0
     const debugState = model.properties?.debugState
     const hasBreakpoint = model.properties?.breakpoint === true
@@ -178,7 +180,7 @@ export class LogicGateView extends RectNode {
           fontFamily: 'var(--rf-font-sans, sans-serif)',
           fontWeight: 600,
         },
-        label,
+        textValue,
       ),
       // Collapse/expand indicator
       h(

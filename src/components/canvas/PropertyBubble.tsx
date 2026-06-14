@@ -55,16 +55,19 @@ export function PropertyBubble({
   // Use floating position service
   const position = calculateSimplePosition(x, y, 260, 200, 20)
 
+  // Extract text value safely
+  const textValue = typeof text === 'object' && text?.value ? text.value : (typeof text === 'string' ? text : nodeType)
+
   return (
     <div
-      class="absolute z-[var(--rf-z-popover,300)] bg-[var(--rf-bg-elevated,#ffffff)] border border-[var(--rf-border,#e5e7eb)] rounded-[var(--rf-radius-lg,8px)] shadow-[var(--rf-shadow-md,0_4px_6px_-1px_rgba(0,0,0,0.1))] p-0 min-w-[200px] max-w-[260px] rf-fade-in font-[var(--rf-font-sans,sans-serif)]"
+      class="absolute z-[var(--rf-z-popover,300)] bg-[var(--rf-bg-elevated,#ffffff)] border border-[var(--rf-border,#e5e7eb)] rounded-[var(--rf-radius-lg,8px)] shadow-[var(--rf-shadow-md,0_4px_6px_-2px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.06))]" 
       style={{ left: position.x, top: position.y }}
     >
       {/* Header with color bar */}
       <div class="flex items-center gap-1.5 px-2.5 py-2 border-b border-[var(--rf-border-light,#f3f4f6)] text-[var(--rf-text-sm,11px)] font-semibold text-[var(--rf-text-primary,#111827)]">
         <div class="w-1 h-3.5 rounded-sm shrink-0" style={{ background: `var(${colorVar})` }} />
         <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-          {text?.value || text || nodeType}
+          {textValue}
         </span>
         <span
           class="px-1.5 py-px rounded-[var(--rf-radius-sm,4px)] text-[var(--rf-text-2xs,9px)] font-bold font-[var(--rf-font-mono,monospace)]"
@@ -76,7 +79,7 @@ export function PropertyBubble({
           P:{priority}
         </span>
         <button
-          class="flex items-center justify-center w-[18px] h-[18px] border-none bg-transparent text-[var(--rf-text-tertiary)] cursor-pointer p-0 rounded-[var(--rf-radius-sm)] hover:bg-[var(--rf-bg-hover)]"
+          class="flex items-center justify-center w-[18px] h-[18px] border-none bg-transparent text-[var(--rf-text-tertiary)] cursor-pointer p-0 rounded-[var(--rf-radius-sm)] hover:bg-[var(--rf-bg-tertiary)]"
           onClick={onClose}
           aria-label="关闭"
         >
@@ -103,7 +106,8 @@ export function PropertyBubble({
           <span>调试模式</span>
           <div class="flex items-center gap-1" style={{ color: 'var(--rf-text-tertiary)' }}>
             <Bug size={12} />
-            <span class="text-[var(--rf-text-2xs)]">关闭</span>
+            <span class="text-[var(--rf-text-2xs)]">
+关闭</span>
           </div>
         </div>
       </div>
@@ -173,7 +177,7 @@ export function PropertyBubble({
 
       {/* Open panel action */}
       <button
-        class="flex items-center gap-1 px-2.5 py-1.5 border-none bg-transparent text-[var(--rf-text-secondary,#6b7280)] text-[var(--rf-text-sm,11px)] cursor-pointer font-[var(--rf-font-sans,sans-serif)] w-full rounded-none border-t border-[var(--rf-border-light,#f3f4f6)] transition-[background] duration-120 hover:bg-[var(--rf-bg-hover)]"
+        class="flex items-center gap-1 px-2.5 py-1.5 border-none bg-transparent text-[var(--rf-text-secondary,#6b7280)] text-[var(--rf-text-sm,11px)] cursor-pointer font-[var(--rf-font-sans,sans-serif)] w-full hover:bg-[var(--rf-bg-tertiary,#f3f4f6)] rounded-b-[var(--rf-radius-lg,8px)]"
         onClick={() => onOpenPanel?.()}
       >
         <Settings size={12} />
