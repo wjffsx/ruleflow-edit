@@ -8,6 +8,8 @@ interface UseDragDropParams {
   lfRef: { current: import('@logicflow/core').LogicFlow | null }
   /** Callback to set whether the canvas is empty */
   setIsEmpty: (v: boolean) => void
+  /** Read-only mode — disables drop */
+  readOnly?: boolean
 }
 
 /** Extract the logic gate operator from node type */
@@ -19,9 +21,10 @@ function getLogicGateOp(type: string): LogicGateOp | null {
 }
 
 /** Hook providing drag-drop handlers for adding nodes to the canvas */
-export function useDragDrop({ lfRef, setIsEmpty }: UseDragDropParams) {
+export function useDragDrop({ lfRef, setIsEmpty, readOnly = false }: UseDragDropParams) {
   const handleDrop = (e: DragEvent) => {
     e.preventDefault()
+    if (readOnly) return
     const lf = lfRef.current
     if (!lf) return
     const nodeData = e.dataTransfer?.getData('application/ruleflow-node')

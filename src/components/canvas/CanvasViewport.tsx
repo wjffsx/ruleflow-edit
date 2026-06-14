@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'preact/hooks'
 import type { Ref } from 'preact'
-import type { NodeData } from '@logicflow/core'
+import type { GraphData, NodeData } from '@logicflow/core'
 import { RelationTypeSelector } from './RelationTypeSelector'
 import { PropertyBubble } from './PropertyBubble'
 import { NodeSearch } from './NodeSearch'
@@ -31,13 +31,66 @@ import {
   batchToolbarState,
 } from '../../store/canvasActions'
 import { DEMO_DATA } from '../../data'
+import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../../types/ruleflowDocument'
 import hotkeys from 'hotkeys-js'
 
-export function CanvasViewport() {
+interface CanvasViewportProps {
+  /** Initial data to render (RuleFlowDocument or LogicFlow GraphData) */
+  initialData?: RuleFlowDocument | GraphData
+  /** Read-only mode — disables drag-drop, node editing */
+  readOnly?: boolean
+  /** Callback when graph data changes */
+  onDataChange?: (data: RuleFlowDocument) => void
+  /** Fine-grained callbacks */
+  onNodeAdd?: (node: RuleFlowNode) => void
+  onNodeDelete?: (nodeId: string) => void
+  onNodeUpdate?: (node: RuleFlowNode) => void
+  onEdgeAdd?: (edge: RuleFlowEdge) => void
+  onEdgeDelete?: (edgeId: string) => void
+}
+
+export function CanvasViewport({
+  initialData,
+  readOnly = false,
+  onDataChange,
+  onNodeAdd,
+  onNodeDelete,
+  onNodeUpdate,
+  onEdgeAdd,
+  onEdgeDelete,
+}: CanvasViewportProps = {}) {
   const containerRef = useRef<HTMLElement | null>(null)
   const lfRef = useRef<import('@logicflow/core').LogicFlow | null>(null)
   const [isEmpty, setIsEmpty] = useState(true)
   const [allNodes, setAllNodes] = useState<NodeData[]>([])
+
+  // ── Convert initialData to GraphData for LogicFlow ──
+  const resolveGraphData = useCallback((): GraphData => {
+    if (!initialData) return DEMO_DATA
+    // If it's a RuleFlowDocument, extract nodes/edges
+    if ('chainId' in initialData && 'nodes' in initialData) {
+      const doc = initialData as RuleFlowDocument
+      return {
+        nodes: doc.nodes.map((n) => ({
+          id: n.id,
+          type: n.type,
+          x: n.x,
+          y: n.y,
+          text: n.text,
+          properties: n.properties,
+        })),
+        edges: doc.edges.map((e) => ({
+          id: e.id,
+          type: e.type,
+          sourceNodeId: e.sourceNodeId,
+          targetNodeId: e.targetNodeId,
+          properties: e.properties,
+        })),
+      }
+    }
+    // Already GraphData
+    return initialData as GraphData
+  }, [initialData])
 
   // Keyboard shortcuts (unified via hotkeys-js)
   useEffect(() => {
@@ -48,9 +101,7 @@ export function CanvasViewport() {
     return () => hotkeys.unbind('ctrl+f')
   }, [])
 
-  // ── Sync debugNodeStates → LogicFlow node properties ──
-  // When debug state changes, update each node model's properties so
-  // BaseNode view can render debug highlights (stroke color, glow, etc.)
+  // ── Sync debugNodeStates → LogicFlow node/edge properties ──
   useEffect(() => {
     const states = debugNodeStates.value
     const bps = debugBreakpoints.value
@@ -70,6 +121,28 @@ export function CanvasViewport() {
         if (import.meta.env.DEV)
           console.warn('[RuleFlow] debug state sync failed for node:', nodeId)
       }
+    }
+
+    // P1-3: Highlight edges between executed nodes
+    // An edge is "executed" if both source and target nodes have a non-idle debug state
+    try {
+      const data = lf.getGraphData()
+      for (const edge of data?.edges || []) {
+        try {
+          const edgeModel = lf.getEdgeModelById(edge.id)
+          if (!edgeModel) continue
+          const srcState = states[edge.sourceNodeId]
+          const tgtState = states[edge.targetNodeId]
+          const isExecuted = srcState && tgtState && srcState !== 'idle' && tgtState !== 'idle'
+          if (edgeModel.properties?.debugExecuted !== isExecuted) {
+            edgeModel.setProperties({ ...edgeModel.properties, debugExecuted: isExecuted })
+          }
+        } catch (_e) {
+          /* skip */
+        }
+      }
+    } catch (_e) {
+      /* skip */
     }
 
     // Sync breakpoint property
@@ -104,14 +177,32 @@ export function CanvasViewport() {
             /* skip */
           }
         }
+        // Clear edge debug state
+        for (const edge of data?.edges || []) {
+          try {
+            const edgeModel = lf.getEdgeModelById(edge.id)
+            if (edgeModel && edgeModel.properties?.debugExecuted) {
+              edgeModel.setProperties({ ...edgeModel.properties, debugExecuted: false })
+            }
+          } catch (_e) {
+            /* skip */
+          }
+        }
       } catch (_e) {
         /* skip */
       }
     }
   }, [debugNodeStates.value, debugBreakpoints.value, isDebugRunning.value])
 
-  useLogicFlow({ containerRef, lfRef, setIsEmpty, setAllNodes, demoData: DEMO_DATA })
-  const { handleDrop, handleDragOver } = useDragDrop({ lfRef, setIsEmpty })
+  useLogicFlow({
+    containerRef,
+    lfRef,
+    setIsEmpty,
+    setAllNodes,
+    initialData: resolveGraphData(),
+    readOnly,
+  })
+  const { handleDrop, handleDragOver } = useDragDrop({ lfRef, setIsEmpty, readOnly })
 
   // ── Handlers for overlay components ──
 
@@ -188,8 +279,8 @@ export function CanvasViewport() {
     <div
       class="relative overflow-hidden bg-[var(--rf-bg-secondary)]"
       style={{ gridArea: 'canvas' }}
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
+      onDrop={readOnly ? undefined : handleDrop}
+      onDragOver={readOnly ? undefined : handleDragOver}
       role="application"
       aria-label="规则链画布"
     >
@@ -244,6 +335,7 @@ export function CanvasViewport() {
             /* TODO */
           }}
           onDelete={() => {
+            if (readOnly) return
             const lf = lfRef.current
             if (lf) {
               selectedNodeIds.value.forEach((id) => {

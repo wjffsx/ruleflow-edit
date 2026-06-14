@@ -488,15 +488,37 @@ function processCondition(
  * Convert a RuleFlowDocument to VPPTU rulechain YAML string.
  * This is a one-time export function for human-readable output.
  *
+ * Handles recursive LogicGate (AND/OR/NOT) nodes by following
+ * condition-tree-edge connections to reconstruct nested conditions.
+ *
  * @param doc - The RuleFlowDocument to export
  * @returns A YAML string representation
  */
 export function toYAML(doc: RuleFlowDocument): string {
+  // Build lookup maps
+  const nodeMap = new Map<string, RuleFlowNode>()
+  for (const node of doc.nodes) {
+    nodeMap.set(node.id, node)
+  }
+
+  // Build adjacency: nodeId → child node IDs via condition-tree-edge
+  const childrenMap = new Map<string, string[]>()
+  // Also track which nodes are targets of condition-tree-edges (to find roots)
+  const ctEdgeTargets = new Set<string>()
+  for (const edge of doc.edges) {
+    if (edge.type === 'condition-tree-edge') {
+      const children = childrenMap.get(edge.sourceNodeId) || []
+      children.push(edge.targetNodeId)
+      childrenMap.set(edge.sourceNodeId, children)
+      ctEdgeTargets.add(edge.targetNodeId)
+    }
+  }
+
   // Group nodes by ruleId to reconstruct rules
   const rulesMap = new Map<string, RuleFlowNode[]>()
-
   for (const node of doc.nodes) {
     const ruleId = node.properties.ruleId
+    if (!ruleId) continue
     if (!rulesMap.has(ruleId)) {
       rulesMap.set(ruleId, [])
     }
@@ -507,36 +529,45 @@ export function toYAML(doc: RuleFlowDocument): string {
   const rules: string[] = []
 
   for (const [ruleId, nodes] of rulesMap) {
-    const conditionNode = nodes.find((n) => n.properties.roleInRule === 'condition')
     const actionNodes = nodes
       .filter((n) => n.properties.roleInRule === 'action')
       .sort((a, b) => (a.properties.actionOrder ?? 0) - (b.properties.actionOrder ?? 0))
 
-    let yaml = `  - id: ${ruleId}\n`
-    yaml += `    name: "${conditionNode?.text || ruleId}"\n`
-    yaml += `    priority: ${conditionNode?.properties.priority ?? 0}\n`
-    yaml += `    enabled: ${conditionNode?.properties.enabled ?? true}\n`
+    // Find the root condition node: a condition or logic_gate node that is NOT
+    // a target of any condition-tree-edge (i.e., not a child of another gate)
+    const conditionNodes = nodes.filter(
+      (n) =>
+        (n.properties.roleInRule === 'condition' || n.properties.roleInRule === 'logic_gate') &&
+        !ctEdgeTargets.has(n.id),
+    )
 
-    if (conditionNode) {
+    // The root condition node is the first one not targeted by condition-tree-edge
+    const condNode = conditionNodes[0]
+
+    // Get rule name from the root condition node, or from any condition node in the tree
+    const anyCondNode =
+      nodes.find((n) => n.properties.roleInRule === 'condition') ||
+      nodes.find((n) => n.properties.roleInRule === 'logic_gate')
+
+    let yaml = `  - id: ${ruleId}\n`
+    yaml += `    name: "${condNode?.text || anyCondNode?.text || ruleId}"\n`
+    yaml += `    priority: ${condNode?.properties.priority ?? anyCondNode?.properties.priority ?? 0}\n`
+    yaml += `    enabled: ${condNode?.properties.enabled ?? anyCondNode?.properties.enabled ?? true}\n`
+
+    // Build condition block
+    if (condNode) {
       yaml += `    condition:\n`
-      if (conditionNode.properties.conditionOp === 'leaf') {
-        yaml += `      leaf_type: "${conditionNode.properties.leafType}"\n`
-        if (conditionNode.properties.leafConfig) {
-          yaml += `      leaf_config:\n`
-          for (const [key, value] of Object.entries(conditionNode.properties.leafConfig)) {
-            yaml += `        ${key}: ${JSON.stringify(value)}\n`
-          }
-        }
-      } else {
-        yaml += `      op: "${conditionNode.properties.conditionOp}"\n`
-      }
+      yaml += buildConditionYAML(condNode.id, nodeMap, childrenMap, '      ')
     }
 
     if (actionNodes.length > 0) {
       yaml += `    actions:\n`
       for (const action of actionNodes) {
         yaml += `      - type: "${action.properties.actionType}"\n`
-        if (action.properties.actionConfig) {
+        if (
+          action.properties.actionConfig &&
+          Object.keys(action.properties.actionConfig).length > 0
+        ) {
           yaml += `        config:\n`
           for (const [key, value] of Object.entries(action.properties.actionConfig)) {
             yaml += `          ${key}: ${JSON.stringify(value)}\n`
@@ -551,8 +582,15 @@ export function toYAML(doc: RuleFlowDocument): string {
   let output = `chain:\n`
   output += `  id: ${doc.chainId}\n`
   output += `  name: "${doc.chainName}"\n`
-  output += `  root: ${doc.root}\n\n`
-  output += `rules:\n`
+  output += `  root: ${doc.root}\n`
+  output += `  enabled: ${doc.enabled}\n`
+  if (doc.evaluationMode) {
+    output += `  evaluation_mode: ${doc.evaluationMode}\n`
+  }
+  if (doc.description) {
+    output += `  description: "${doc.description}"\n`
+  }
+  output += `\nrules:\n`
   output += rules.join('\n')
 
   if (doc.outputs && doc.outputs.length > 0) {
@@ -566,6 +604,51 @@ export function toYAML(doc: RuleFlowDocument): string {
   }
 
   return output
+}
+
+/**
+ * Recursively build YAML condition block for a node.
+ * Leaf conditions produce leaf_type/leaf_config.
+ * Logic gates (AND/OR/NOT) produce op + nested conditions.
+ */
+function buildConditionYAML(
+  nodeId: string,
+  nodeMap: Map<string, RuleFlowNode>,
+  childrenMap: Map<string, string[]>,
+  indent: string,
+): string {
+  const node = nodeMap.get(nodeId)
+  if (!node) return ''
+
+  const op = node.properties.conditionOp
+
+  // Leaf condition
+  if (op === 'leaf' || (!op && node.properties.roleInRule === 'condition')) {
+    let yaml = `${indent}op: leaf\n`
+    if (node.properties.leafType) {
+      yaml += `${indent}leaf_type: "${node.properties.leafType}"\n`
+    }
+    if (node.properties.leafConfig && Object.keys(node.properties.leafConfig).length > 0) {
+      yaml += `${indent}leaf_config:\n`
+      for (const [key, value] of Object.entries(node.properties.leafConfig)) {
+        yaml += `${indent}  ${key}: ${JSON.stringify(value)}\n`
+      }
+    }
+    return yaml
+  }
+
+  // Logic gate condition (AND/OR/NOT)
+  let yaml = `${indent}op: ${op}\n`
+  const childIds = childrenMap.get(nodeId) || []
+  if (childIds.length > 0) {
+    yaml += `${indent}conditions:\n`
+    for (const childId of childIds) {
+      yaml += `${indent}  - \n`
+      yaml += buildConditionYAML(childId, nodeMap, childrenMap, `${indent}    `)
+    }
+  }
+
+  return yaml
 }
 
 /** Create an empty RuleFlowDocument with default values */

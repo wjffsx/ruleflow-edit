@@ -26,8 +26,10 @@ interface UseLogicFlowParams {
   setIsEmpty: (v: boolean) => void
   /** Callback to set all node data */
   setAllNodes: (v: import('@logicflow/core').NodeData[]) => void
-  /** Demo data to render initially */
-  demoData: GraphData
+  /** Initial data to render (replaces demoData) */
+  initialData?: GraphData
+  /** Read-only mode — disables editing in LogicFlow */
+  readOnly?: boolean
 }
 
 /** Return type of useLogicFlow hook */
@@ -40,7 +42,8 @@ export function useLogicFlow({
   lfRef,
   setIsEmpty,
   setAllNodes,
-  demoData,
+  initialData,
+  readOnly = false,
 }: UseLogicFlowParams): UseLogicFlowReturn {
   useEffect(() => {
     if (!containerRef.current || lfRef.current) return
@@ -48,8 +51,8 @@ export function useLogicFlow({
     const lf = new LogicFlow({
       container: containerRef.current,
       grid: { size: 20, visible: true, type: 'dot', config: { color: '#e5e7eb' } },
-      keyboard: { enabled: true },
-      plugins: [MiniMap, Snapshot, SelectionSelect],
+      keyboard: { enabled: !readOnly },
+      plugins: readOnly ? [MiniMap] : [MiniMap, Snapshot, SelectionSelect],
       style: {
         rect: { width: 200, height: 80, radius: 8, strokeWidth: 2 },
         nodeText: { fontSize: 13, overflowMode: 'autoWrap' },
@@ -57,9 +60,14 @@ export function useLogicFlow({
         polyline: { stroke: '#d1d5db', strokeWidth: 2 },
       },
       edgeType: 'polyline',
-      snapline: true,
-      history: true,
+      snapline: !readOnly,
+      history: !readOnly,
       partial: true,
+      // P0-5: Read-only mode — disable editing interactions
+      isSilentMode: false,
+      stopScrollGraph: readOnly,
+      stopZoomGraph: readOnly,
+      stopMoveGraph: readOnly ? true : false,
     })
 
     // Register custom types
@@ -75,13 +83,28 @@ export function useLogicFlow({
       view: ConditionTreeEdgeView,
     }))
 
-    lf.render(demoData)
+    // P0-3: Use initialData if provided, otherwise use empty
+    const dataToRender = initialData || { nodes: [], edges: [] }
+    lf.render(dataToRender)
     setTimeout(() => lf.fitView(60), 100)
     lfRef.current = lf
     setLfInstance(lf)
 
     // ── Inject SVG filter defs for debug glow effects ──
     injectSvgFilterDefs(containerRef.current)
+
+    // P0-5: In read-only mode, disable node drag, edge creation, and deletion
+    if (readOnly) {
+      try {
+        const graphModel = lf.graphModel
+        // Disable node dragging
+        graphModel.nodes.forEach((node: any) => {
+          node.draggable = false
+        })
+      } catch (_e) {
+        // ignore
+      }
+    }
 
     // Expose for debugging (dev only)
     if (import.meta.env.DEV) {

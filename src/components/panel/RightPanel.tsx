@@ -15,9 +15,11 @@ const TABS = [
 interface RightPanelProps {
   /** Custom property renderer for selected node */
   propertyRenderer?: (node: unknown, onChange: (updated: unknown) => void) => ComponentChild
+  /** Read-only mode — disables property editing */
+  readOnly?: boolean
 }
 
-export function RightPanel({ propertyRenderer }: RightPanelProps = {}) {
+export function RightPanel({ propertyRenderer, readOnly = false }: RightPanelProps = {}) {
   const closed = panelClosed.value
   const activeTab = activePanelTab.value
 
@@ -79,7 +81,9 @@ export function RightPanel({ propertyRenderer }: RightPanelProps = {}) {
 
       {/* Tab content */}
       <div role="tabpanel" class="flex-1 overflow-hidden flex flex-col">
-        {activeTab === 'properties' && <PropertiesTab propertyRenderer={propertyRenderer} />}
+        {activeTab === 'properties' && (
+          <PropertiesTab propertyRenderer={propertyRenderer} readOnly={readOnly} />
+        )}
         {activeTab === 'debug' && <DebugPanel />}
         {activeTab === 'outline' && <OutlineTab />}
       </div>

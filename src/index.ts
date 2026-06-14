@@ -57,7 +57,7 @@ export type {
 // ── Components ─────────────────────────────────────────────────────
 export { App } from './app'
 export { RuleFlowEditor } from './layout/RuleFlowEditor'
-export type { RuleFlowEditorProps, DebugState } from './layout/RuleFlowEditor'
+export type { RuleFlowEditorProps, DebugState, ToastAdapter } from './layout/RuleFlowEditor'
 export { CommandPalette } from './components/canvas/CommandPalette'
 export { EmptyState } from './components/canvas/EmptyState'
 export { NodeSearch } from './components/canvas/NodeSearch'

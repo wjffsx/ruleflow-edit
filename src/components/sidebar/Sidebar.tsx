@@ -37,14 +37,17 @@ interface SidebarItemProps {
   item: NodeItem
   /** 颜色 CSS 变量 */
   colorVar?: string
+  /** Read-only mode — disables drag */
+  readOnly?: boolean
 }
 
-function SidebarItem({ item, colorVar }: SidebarItemProps) {
+function SidebarItem({ item, colorVar, readOnly }: SidebarItemProps) {
   return (
     <div
       class="flex items-center gap-[var(--rf-space-2)] py-[5px] pr-[var(--rf-space-3)] pl-[var(--rf-space-6)] text-[var(--rf-text-sm)] text-[var(--rf-text-primary)] cursor-grab transition-[background] duration-[var(--rf-duration-fast)]"
-      draggable
+      draggable={!readOnly}
       onDragStart={(e: DragEvent) => {
+        if (readOnly) return
         e.dataTransfer!.setData('application/ruleflow-node', JSON.stringify(item))
         e.dataTransfer!.effectAllowed = 'copy'
       }}
@@ -110,7 +113,7 @@ function CategorySection({ category }: CategorySectionProps) {
 }
 
 /** 侧栏组件 */
-export function Sidebar() {
+export function Sidebar({ readOnly = false }: { readOnly?: boolean } = {}) {
   const [query, setQuery] = useState('')
   const collapsed = sidebarCollapsed.value
 
@@ -194,7 +197,9 @@ export function Sidebar() {
               {t('sidebar.noResults')}
             </div>
           ) : (
-            searchResults.map((item: SearchItem) => <SidebarItem key={item.type} item={item} />)
+            searchResults.map((item: SearchItem) => (
+              <SidebarItem key={item.type} item={item} readOnly={readOnly} />
+            ))
           )
         ) : (
           <>
@@ -204,9 +209,9 @@ export function Sidebar() {
               {t('sidebar.favorites')}
             </div>
             {PORT_NODES.map((item: PortNode) => (
-              <SidebarItem key={item.type} item={item} />
+              <SidebarItem key={item.type} item={item} readOnly={readOnly} />
             ))}
-            <SidebarItem item={NOTE_NODE} />
+            <SidebarItem item={NOTE_NODE} readOnly={readOnly} />
 
             {/* Category sections */}
             {NODE_CATEGORIES.map((cat: NodeCategory) => (

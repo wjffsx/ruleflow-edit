@@ -9,6 +9,7 @@ import {
   XCircle,
   Clock,
   Bug,
+  Database,
 } from 'lucide-preact'
 import {
   isDebugRunning,
@@ -18,11 +19,13 @@ import {
   debugNodeStates,
   debugMessages,
   debugBreakpoints,
+  debugNodeId,
   pauseDebug,
   resumeDebug,
   stopDebug,
   stepDebug,
   toggleBreakpoint,
+  lfInstance,
 } from '../../store'
 import { startDebugWithEngine, countStates, clearSimulationInterval } from './debugSimulation'
 
@@ -187,6 +190,64 @@ export function DebugPanel() {
           ))}
         </div>
       )}
+
+      {/* P1-4: Node data inspection */}
+      {running &&
+        (() => {
+          // Find the currently processing node
+          const processingNodeId =
+            Object.entries(states).find(([, s]) => s === 'processing')?.[0] || debugNodeId.value
+          if (!processingNodeId) return null
+
+          const lf = lfInstance.value
+          let nodeData: Record<string, unknown> | null = null
+          let nodeName = processingNodeId
+          if (lf) {
+            try {
+              const model = lf.getNodeModelById(processingNodeId)
+              if (model) {
+                nodeName =
+                  typeof model.text === 'object'
+                    ? (model.text as any).value
+                    : (model.text as string)
+                nodeData = {
+                  ...((model.properties?.debugOutput as Record<string, unknown>) || {}),
+                  ...((model.properties?.debugVariables as Record<string, unknown>) || {}),
+                }
+              }
+            } catch (_e) {
+              /* skip */
+            }
+          }
+
+          return (
+            <div style={{ marginBottom: 'var(--rf-space-4, 16px)' }}>
+              <div class="rf-section-title">
+                <Database size={12} />
+                节点数据
+              </div>
+              <div class="text-[var(--rf-text-sm,11px)] text-[var(--rf-brand-primary)] font-semibold mb-1">
+                {nodeName}
+              </div>
+              {nodeData && Object.keys(nodeData).length > 0 ? (
+                <div class="bg-[var(--rf-bg-secondary)] rounded-[var(--rf-radius-md,6px)] p-[var(--rf-space-2,8px)] font-[var(--rf-font-mono,monospace)] text-[var(--rf-text-2xs,9px)] max-h-[120px] overflow-y-auto">
+                  {Object.entries(nodeData).map(([key, value]) => (
+                    <div key={key} class="flex gap-1 py-0.5">
+                      <span class="text-[var(--rf-brand-primary)] shrink-0">{key}:</span>
+                      <span class="text-[var(--rf-text-primary)] break-all">
+                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div class="text-[var(--rf-text-tertiary)] text-[var(--rf-text-2xs,9px)]">
+                  暂无数据（节点执行完成后显示输出）
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
       {/* Execution log */}
       <div class="rf-section-title">

@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'preact/hooks'
+import { useEffect, useRef, useCallback } from 'preact/hooks'
 import type { CSSProperties, ComponentChild } from 'preact'
+import type { GraphData } from '@logicflow/core'
 import { Navbar } from '../components/navbar/Navbar'
 import { Toolbar } from '../components/toolbar/Toolbar'
 import { Sidebar } from '../components/sidebar/Sidebar'
@@ -22,11 +23,18 @@ import {
   cycleDensityMode,
   setZoom,
   canvasZoom,
+  isDebugRunning,
+  isDebugPaused,
+  debugStep,
+  debugTotalSteps,
+  debugNodeStates,
+  debugMessages,
 } from '../store'
 import { setTheme } from '../store/themeStore'
-import { showSuccess } from '../services'
+import { showSuccess, showError, showWarning, showInfo } from '../services'
 import hotkeys from 'hotkeys-js'
 import type { DebugNodeState, DebugMessage, ThemeMode } from '../types/editor'
+import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../types/ruleflowDocument'
 
 // ── Props Types ──────────────────────────────────────────────────
 
@@ -40,15 +48,27 @@ export interface DebugState {
   totalSteps: number
 }
 
+/** Toast adapter — allows host application to intercept notifications */
+export interface ToastAdapter {
+  success(message: string): void
+  error(message: string): void
+  warning(message: string): void
+  info(message: string): void
+}
+
 /** RuleFlowEditor component props */
 export interface RuleFlowEditorProps {
   // ── Data ──
-  /** Initial graph data to load */
-  initialData?: unknown
+  /** Initial graph data to load (RuleFlowDocument or LogicFlow GraphData) */
+  initialData?: RuleFlowDocument | GraphData
   /** Callback when graph data changes */
-  onDataChange?: (data: unknown) => void
+  onDataChange?: (data: RuleFlowDocument) => void
+  /** Callback when user triggers save (Ctrl+S) */
+  onSave?: (data: RuleFlowDocument) => void
 
   // ── Feature toggles ──
+  /** Show navbar (default: true) */
+  showNavbar?: boolean
   /** Show sidebar (default: true) */
   showSidebar?: boolean
   /** Show debug panel (default: true) */
@@ -83,6 +103,22 @@ export interface RuleFlowEditorProps {
   // ── Property editor ──
   /** Custom property renderer for selected node */
   propertyRenderer?: (node: unknown, onChange: (updated: unknown) => void) => ComponentChild
+
+  // ── Toast ──
+  /** Custom toast adapter — if provided, host handles all notifications */
+  toastAdapter?: ToastAdapter
+
+  // ── Fine-grained callbacks ──
+  /** Callback when a node is added */
+  onNodeAdd?: (node: RuleFlowNode) => void
+  /** Callback when a node is deleted */
+  onNodeDelete?: (nodeId: string) => void
+  /** Callback when a node is updated */
+  onNodeUpdate?: (node: RuleFlowNode) => void
+  /** Callback when an edge is added */
+  onEdgeAdd?: (edge: RuleFlowEdge) => void
+  /** Callback when an edge is deleted */
+  onEdgeDelete?: (edgeId: string) => void
 }
 
 // ── Default shortcuts map ────────────────────────────────────────
@@ -105,6 +141,7 @@ const DEFAULT_SHORTCUTS: Record<string, string> = {
 
 export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
   const {
+    showNavbar = true,
     showSidebar = true,
     showDebugPanel = true,
     showToolbar = true,
@@ -116,9 +153,42 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     hotkeyOverrides,
     onDebugStart,
     onDebugStep,
+    onSave,
+    toastAdapter,
+    onDataChange,
+    onNodeAdd,
+    onNodeDelete,
+    onNodeUpdate,
+    onEdgeAdd,
+    onEdgeDelete,
   } = props
 
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // ── Toast adapter wrapper ──
+  const toast = useCallback(
+    (type: 'success' | 'error' | 'warning' | 'info', message: string) => {
+      if (toastAdapter) {
+        toastAdapter[type](message)
+      } else {
+        switch (type) {
+          case 'success':
+            showSuccess(message)
+            break
+          case 'error':
+            showError(message)
+            break
+          case 'warning':
+            showWarning(message)
+            break
+          case 'info':
+            showInfo(message)
+            break
+        }
+      }
+    },
+    [toastAdapter],
+  )
 
   // Sync theme from props
   useEffect(() => {
@@ -126,6 +196,23 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
       setTheme(themeProp)
     }
   }, [themeProp])
+
+  // ── P0-4: Sync debugState prop → internal debug signals ──
+  useEffect(() => {
+    if (!props.debugState) return
+    const ds = props.debugState
+    debugNodeStates.value = ds.nodeStates
+    debugMessages.value = ds.messages.map((m) => ({
+      nodeId: m.nodeId,
+      type: m.type,
+      message: m.message,
+      time: (m as any).time ?? Date.now(),
+    }))
+    isDebugRunning.value = ds.isRunning
+    isDebugPaused.value = ds.isPaused
+    debugStep.value = ds.currentStep
+    debugTotalSteps.value = ds.totalSteps
+  }, [props.debugState])
 
   const collapsed = sidebarCollapsed.value
   const noPanel = panelClosed.value
@@ -152,13 +239,10 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     // Set hotkeys scope to this editor instance
     hotkeys.setScope('ruleflow-editor')
 
-    const bindings: string[] = []
-
     const bind = (actionId: string, handler: (e: KeyboardEvent) => void) => {
       const keys = effectiveShortcuts[actionId]
       if (!keys) return
       hotkeys(keys, { scope: 'ruleflow-editor' }, handler)
-      bindings.push(keys)
     }
 
     bind('command-palette', (e) => {
@@ -167,7 +251,44 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     })
     bind('save', (e) => {
       e.preventDefault()
-      showSuccess('规则链已保存')
+      // P0-6: Call onSave if provided, otherwise show toast
+      if (onSave) {
+        try {
+          const lf = (window as unknown as Record<string, unknown>).__lf as
+            | import('@logicflow/core').LogicFlow
+            | undefined
+          if (lf) {
+            const graphData = lf.getGraphData() as any
+            const doc: RuleFlowDocument = {
+              chainId: '',
+              chainName: '',
+              enabled: true,
+              root: false,
+              evaluationMode: 'all',
+              nodes: (graphData.nodes || []).map((n: any) => ({
+                id: n.id,
+                type: n.type,
+                x: n.x ?? 0,
+                y: n.y ?? 0,
+                text: typeof n.text === 'object' ? (n.text?.value ?? '') : (n.text ?? ''),
+                properties: n.properties ?? {},
+              })),
+              edges: (graphData.edges || []).map((e: any) => ({
+                id: e.id,
+                type: e.type ?? 'polyline',
+                sourceNodeId: e.sourceNodeId,
+                targetNodeId: e.targetNodeId,
+                properties: e.properties ?? {},
+              })),
+            }
+            onSave(doc)
+          }
+        } catch (_e) {
+          toast('error', '保存失败')
+        }
+      } else {
+        toast('success', '规则链已保存')
+      }
     })
     bind('toggle-sidebar', (e) => {
       e.preventDefault()
@@ -210,7 +331,7 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     return () => {
       hotkeys.deleteScope('ruleflow-editor')
     }
-  }, [hotkeyOverrides, onDebugStart])
+  }, [hotkeyOverrides, onDebugStart, onSave, toast])
 
   // Focus/blur handling — activate/deactivate hotkeys scope
   useEffect(() => {
@@ -249,6 +370,25 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     gridCols = 'var(--sidebar-width) 1fr var(--panel-width)'
   }
 
+  // ── P0-8: Dynamic grid-template-rows/areas based on showNavbar ──
+  const gridRows = [
+    showNavbar ? 'var(--navbar-height)' : '',
+    showToolbar ? 'var(--toolbar-height)' : '',
+    '1fr',
+    showStatusBar ? 'var(--statusbar-height)' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const areas = [
+    showNavbar ? '"navbar navbar navbar"' : '',
+    showToolbar ? '"toolbar toolbar toolbar"' : '',
+    '"sidebar canvas panel"',
+    showStatusBar ? '"status status status"' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   const handleExecuteCommand = (cmdId: string) => {
     switch (cmdId) {
       case 'run':
@@ -268,32 +408,36 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
       ref={containerRef}
       class={[
         'grid h-full overflow-hidden bg-[var(--rf-bg-primary)] text-[var(--rf-text-primary)] font-[var(--rf-font-sans)] text-[var(--rf-text-base)]',
+        readOnly ? 'rf-readonly' : '',
         className,
       ]
         .filter(Boolean)
         .join(' ')}
       style={{
-        gridTemplateRows: [
-          showToolbar ? 'var(--navbar-height) var(--toolbar-height)' : 'var(--navbar-height)',
-          '1fr',
-          showStatusBar ? 'var(--statusbar-height)' : '',
-        ]
-          .filter(Boolean)
-          .join(' '),
-        gridTemplateAreas: showToolbar
-          ? '"navbar navbar navbar" "toolbar toolbar toolbar" "sidebar canvas panel" "status status status"'
-          : '"navbar navbar navbar" "sidebar canvas panel" "status status status"',
+        gridTemplateRows: gridRows,
+        gridTemplateAreas: areas,
         gridTemplateColumns: gridCols,
         transition: 'grid-template-columns var(--rf-duration-normal) var(--rf-ease-default)',
         ...style,
       }}
       tabIndex={-1}
     >
-      <Navbar />
+      {showNavbar && <Navbar />}
       {showToolbar && <Toolbar />}
-      {showSidebar && <Sidebar />}
-      <CanvasViewport />
-      {showDebugPanel && !focused && <RightPanel propertyRenderer={props.propertyRenderer} />}
+      {showSidebar && <Sidebar readOnly={readOnly} />}
+      <CanvasViewport
+        initialData={props.initialData}
+        readOnly={readOnly}
+        onDataChange={onDataChange}
+        onNodeAdd={onNodeAdd}
+        onNodeDelete={onNodeDelete}
+        onNodeUpdate={onNodeUpdate}
+        onEdgeAdd={onEdgeAdd}
+        onEdgeDelete={onEdgeDelete}
+      />
+      {showDebugPanel && !focused && (
+        <RightPanel propertyRenderer={props.propertyRenderer} readOnly={readOnly} />
+      )}
       {showStatusBar && <StatusBar />}
 
       {/* Command palette (Ctrl+K) */}

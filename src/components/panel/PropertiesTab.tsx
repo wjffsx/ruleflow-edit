@@ -15,12 +15,14 @@ const PANEL_MODES = [
 interface PropertiesTabProps {
   /** Custom property renderer for selected node */
   propertyRenderer?: (node: unknown, onChange: (updated: unknown) => void) => ComponentChild
+  /** Read-only mode — disables property editing */
+  readOnly?: boolean
 }
 
 /**
  * Properties panel tab — displays node properties when a node is selected.
  */
-export function PropertiesTab({ propertyRenderer }: PropertiesTabProps = {}) {
+export function PropertiesTab({ propertyRenderer, readOnly = false }: PropertiesTabProps = {}) {
   const nodeId = selectedNodeId.value
   const currentMode = panelMode.value
 
@@ -145,6 +147,7 @@ export function PropertiesTab({ propertyRenderer }: PropertiesTabProps = {}) {
           <span class="rf-field-label">{t('node.enabled')}</span>
           <div
             onClick={() => {
+              if (readOnly) return
               if (lf && nodeId) {
                 const model = lf.getNodeModelById(nodeId)
                 if (model) {

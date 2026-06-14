@@ -29,7 +29,7 @@ export class RelationEdgeModel extends PolylineEdgeModel {
     const relation = (this.properties?.relationType as string) || 'default'
     const color = RELATION_COLORS[relation] || RELATION_COLORS.default
     style.stroke = color
-    style.strokeWidth = 2
+    style.strokeWidth = this.properties?.debugExecuted ? 3.5 : 2
     style.strokeDasharray = relation === 'TargetRoute' ? '8 4' : ''
     return style
   }
@@ -50,7 +50,7 @@ export class RelationEdgeModel extends PolylineEdgeModel {
   }
 }
 
-// Custom edge view with label
+// Custom edge view with label and debug highlighting
 export class RelationEdgeView extends PolylineEdge {
   getEdge() {
     const { model } = this.props as any
@@ -58,13 +58,20 @@ export class RelationEdgeView extends PolylineEdge {
     const relation = properties?.relationType || 'default'
     const color = RELATION_COLORS[relation as string] || RELATION_COLORS.default
     const label = RELATION_LABELS[relation as string] || ''
+    const isDebugExecuted = properties?.debugExecuted === true
 
-    const attrs = {
+    const attrs: Record<string, any> = {
       points,
       stroke: color,
-      strokeWidth: 2,
+      strokeWidth: isDebugExecuted ? 3.5 : 2,
       fill: 'none',
       strokeDasharray: relation === 'TargetRoute' ? '8 4' : '',
+    }
+
+    // P1-3: Debug glow filter for executed edges
+    if (isDebugExecuted) {
+      attrs.filter = 'url(#rf-debug-pulse)'
+      attrs.strokeOpacity = 0.9
     }
 
     return h('g', {}, [h('polyline', attrs)])

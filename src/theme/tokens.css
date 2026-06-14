@@ -211,8 +211,54 @@
   --density-scale: 1;
 }
 
+/* ── VPPTU CSS Variable Mapping ──────────────────────────────── */
+/* When embedded in VPPTU Editor, --color-* variables are provided */
+/* by the host. These mappings allow ruleflow-edit to use VPPTU's */
+/* theme seamlessly. Fallback values match the defaults above.   */
+
+:root {
+  --rf-bg-primary: var(--color-bg-primary, #ffffff);
+  --rf-bg-secondary: var(--color-bg-secondary, #f3f4f6);
+  --rf-bg-tertiary: var(--color-bg-tertiary, #e5e7eb);
+  --rf-bg-hover: var(--color-bg-hover, #f9fafb);
+  --rf-bg-elevated: var(--color-bg-elevated, #ffffff);
+  --rf-color-surface: var(--color-surface, #ffffff);
+  --rf-color-overlay: var(--color-overlay, rgba(0, 0, 0, 0.5));
+
+  --rf-text-primary: var(--color-text-primary, #111827);
+  --rf-text-secondary: var(--color-text-secondary, #6b7280);
+  --rf-text-tertiary: var(--color-text-tertiary, #78716c);
+  --rf-text-on-primary: var(--color-text-on-primary, #ffffff);
+  --rf-text-link: var(--color-link, #2563eb);
+
+  --rf-border: var(--color-border, #e5e7eb);
+  --rf-border-light: var(--color-border-light, #f3f4f6);
+  --rf-border-strong: var(--color-border-strong, #d1d5db);
+
+  --rf-brand-primary: var(--color-primary, #2563eb);
+  --rf-brand-primary-hover: var(--color-primary-hover, #1d4ed8);
+  --rf-brand-primary-light: var(--color-primary-light, #eff6ff);
+  --rf-brand-accent: var(--color-accent, #06b6d4);
+
+  --rf-status-success: var(--color-success, #16a34a);
+  --rf-status-success-light: var(--color-success-light, #f0fdf4);
+  --rf-status-warning: var(--color-warning, #d97706);
+  --rf-status-warning-light: var(--color-warning-light, #fffbeb);
+  --rf-status-danger: var(--color-danger, #dc2626);
+  --rf-status-danger-light: var(--color-danger-light, #fef2f2);
+  --rf-status-info: var(--color-info, #0891b2);
+  --rf-status-info-light: var(--color-info-light, #ecfeff);
+  --rf-status-processing: var(--color-processing, #7c3aed);
+  --rf-status-processing-light: var(--color-processing-light, #f5f3ff);
+  --rf-status-idle: var(--color-idle, #9ca3af);
+
+  --rf-shadow-color: var(--color-shadow, rgba(0, 0, 0, 0.1));
+}
+
 /* ── Dark Theme ── */
-[data-theme='dark'] {
+/* Support both [data-theme='dark'] (ruleflow-edit native) and .dark (VPPTU) */
+[data-theme='dark'],
+.dark {
   --rf-brand-primary: #60a5fa;
   --rf-brand-primary-hover: #3b82f6;
   --rf-brand-primary-light: #1e3a8a;
@@ -292,6 +338,44 @@
   --rf-equip-standby-bg: #1a3a4a;
   --rf-equip-unknown: #6b7280;
   --rf-equip-unknown-bg: #374151;
+
+  /* VPPTU dark theme variable overrides (fallback to values above) */
+  --rf-bg-primary: var(--color-bg-primary, #111827);
+  --rf-bg-secondary: var(--color-bg-secondary, #1f2937);
+  --rf-bg-tertiary: var(--color-bg-tertiary, #374151);
+  --rf-bg-hover: var(--color-bg-hover, #374151);
+  --rf-bg-elevated: var(--color-bg-elevated, #1f2937);
+  --rf-color-surface: var(--color-surface, #1e293b);
+  --rf-color-overlay: var(--color-overlay, rgba(0, 0, 0, 0.6));
+
+  --rf-text-primary: var(--color-text-primary, #f9fafb);
+  --rf-text-secondary: var(--color-text-secondary, #d1d5db);
+  --rf-text-tertiary: var(--color-text-tertiary, #a8a29e);
+  --rf-text-on-primary: var(--color-text-on-primary, #ffffff);
+  --rf-text-link: var(--color-link, #60a5fa);
+
+  --rf-border: var(--color-border, #374151);
+  --rf-border-light: var(--color-border-light, #4b5563);
+  --rf-border-strong: var(--color-border-strong, #6b7280);
+
+  --rf-brand-primary: var(--color-primary, #60a5fa);
+  --rf-brand-primary-hover: var(--color-primary-hover, #3b82f6);
+  --rf-brand-primary-light: var(--color-primary-light, #1e3a8a);
+  --rf-brand-accent: var(--color-accent, #22d3ee);
+
+  --rf-status-success: var(--color-success, #4ade80);
+  --rf-status-success-light: var(--color-success-light, #1a3a2a);
+  --rf-status-warning: var(--color-warning, #fbbf24);
+  --rf-status-warning-light: var(--color-warning-light, #3b3520);
+  --rf-status-danger: var(--color-danger, #f87171);
+  --rf-status-danger-light: var(--color-danger-light, #3b1c1c);
+  --rf-status-info: var(--color-info, #22d3ee);
+  --rf-status-info-light: var(--color-info-light, #1a3a4a);
+  --rf-status-processing: var(--color-processing, #a78bfa);
+  --rf-status-processing-light: var(--color-processing-light, #2d1f4a);
+  --rf-status-idle: var(--color-idle, #9ca3af);
+
+  --rf-shadow-color: var(--color-shadow, rgba(0, 0, 0, 0.3));
 }
 
 /* v2.0: 密度模式 */
