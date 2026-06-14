@@ -67,6 +67,34 @@ export const NODE_TYPE_MAP: Record<string, NodeTypeMeta> = {
     lfType: 'rf-sub-chain',
     category: 'flow',
   },
+  // Logic gate nodes (AND/OR/NOT condition groups)
+  logic_gate_and: {
+    label: 'AND 条件组',
+    icon: 'GitBranch',
+    colorVar: '--rf-node-logic-gate',
+    width: 180,
+    height: 80,
+    lfType: 'rf-logic-gate',
+    category: 'logic_gate',
+  },
+  logic_gate_or: {
+    label: 'OR 条件组',
+    icon: 'GitBranch',
+    colorVar: '--rf-node-logic-gate',
+    width: 180,
+    height: 80,
+    lfType: 'rf-logic-gate',
+    category: 'logic_gate',
+  },
+  logic_gate_not: {
+    label: 'NOT 条件组',
+    icon: 'GitBranch',
+    colorVar: '--rf-node-logic-gate',
+    width: 180,
+    height: 80,
+    lfType: 'rf-logic-gate',
+    category: 'logic_gate',
+  },
   // Note
   note: {
     label: '注释',
@@ -86,6 +114,7 @@ const CATEGORY_TO_VISUAL: Record<string, string> = {
   'ext-nodes': 'ext',
   'vpp-nodes': 'action',
   'flow-nodes': 'flow',
+  'logic-gates': 'logic_gate',
 }
 
 /** Auto-generated mapping from node type to visual category */
@@ -110,6 +139,7 @@ export const NODE_STYLE_MAP: Record<string, VisualCategory> = {
   flow: { colorVar: '--rf-node-subchain', icon: 'Link', hexColor: '#7c3aed' },
   note: { colorVar: '--rf-node-note', icon: 'MessageSquare', hexColor: '#9ca3af' },
   rule: { colorVar: '--rf-node-condition', icon: 'GitBranch', hexColor: '#2563eb' },
+  logic_gate: { colorVar: '--rf-node-logic-gate', icon: 'GitBranch', hexColor: '#7c3aed' },
 }
 
 /**
@@ -127,7 +157,16 @@ export const CATEGORY_TO_LF_TYPE: Record<string, string> = {
   flow: 'rf-sub-chain',
   port: 'rf-input-port',
   note: 'rf-note',
+  logic_gate: 'rf-logic-gate',
 }
 
 /** Canonical order for node type categories */
-export const TYPE_ORDER: string[] = ['port', 'condition', 'action', 'ext', 'flow', 'note']
+export const TYPE_ORDER: string[] = [
+  'port',
+  'condition',
+  'logic_gate',
+  'action',
+  'ext',
+  'flow',
+  'note',
+]

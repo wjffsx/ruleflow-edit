@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'preact/hooks'
 import { Sun, Moon, Monitor } from 'lucide-preact'
 import { theme, setTheme } from '../store'
 import { safeGetTheme, safeGetThemePref, safeSetStorage } from '../utils'
-import s from './ThemeToggle.module.css'
 
 const MODES = [
   { key: 'light', icon: Sun, label: '浅色' },
@@ -54,7 +53,10 @@ export function ThemeToggle() {
   const CurrentIcon = theme.value === 'dark' ? Moon : Sun
 
   const menuContent = open && (
-    <div class={`${s.menu} rf-theme-menu`} style={{ left: position.x, top: position.y + 4 }}>
+    <div
+      class="fixed bg-[var(--rf-bg-elevated)] border border-[var(--rf-border)] rounded-[var(--rf-radius-md)] shadow-[var(--rf-shadow-lg)] p-1 z-[10000] min-w-[140px] rf-theme-menu"
+      style={{ left: position.x, top: position.y + 4 }}
+    >
       {MODES.map(({ key, icon: Icon, label }) => {
         const themePref = safeGetThemePref()
         const isCurrent = themePref === key
@@ -62,7 +64,7 @@ export function ThemeToggle() {
           <button
             key={key}
             onClick={() => handleSelect(key)}
-            class={`${s.menuItem} ${isCurrent ? s.menuItemActive : ''}`}
+            class={`flex items-center gap-2 w-full px-2.5 py-1.5 border-none bg-transparent text-[var(--rf-text-primary)] rounded-[var(--rf-radius-sm)] cursor-pointer text-[var(--rf-text-sm)] font-[var(--rf-font-sans)] hover:bg-[var(--rf-bg-hover)] ${isCurrent ? 'bg-[var(--rf-brand-primary-light)] text-[var(--rf-brand-primary)] hover:bg-[var(--rf-brand-primary-light)]' : ''}`}
           >
             <Icon size={14} />
             {label}
@@ -76,7 +78,7 @@ export function ThemeToggle() {
     <div>
       <button
         ref={buttonRef}
-        class={s.triggerBtn}
+        class="flex items-center justify-center w-8 h-8 border-none bg-transparent text-[var(--rf-text-secondary)] cursor-pointer rounded-[var(--rf-radius-sm)] transition-all duration-[var(--rf-duration-fast)] hover:bg-[var(--rf-bg-hover)] hover:text-[var(--rf-text-primary)]"
         onClick={() => setOpen(!open)}
         title="切换主题"
         aria-label="切换主题"

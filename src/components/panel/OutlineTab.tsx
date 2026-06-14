@@ -2,7 +2,6 @@ import { List } from 'lucide-preact'
 import type { NodeData } from '@logicflow/core'
 import { selectedNodeId, outlineNodes, chainName } from '../../store'
 import { getNodeStyle, TYPE_ORDER, ICON_MAP } from '../../data'
-import s from './RightPanel.module.css'
 
 /**
  * Outline panel tab — displays a sorted list of nodes on the canvas.
@@ -55,7 +54,7 @@ export function OutlineTab() {
         return (
           <div
             key={node.id}
-            class={`${s.outlineItem} ${isSelected ? s.outlineItemSelected : ''}`}
+            class={`flex items-center gap-[var(--rf-space-2)] px-1.5 py-1 text-[var(--rf-text-sm)] cursor-pointer rounded-[var(--rf-radius-sm)] transition-[background] duration-[var(--rf-duration-fast)] ${isSelected ? 'bg-[var(--rf-brand-primary-light)] text-[var(--rf-brand-primary)] font-medium hover:bg-[var(--rf-brand-primary-light)]' : 'hover:bg-[var(--rf-bg-hover)]'}`}
             onClick={() => {
               selectedNodeId.value = node.id
             }}
@@ -65,7 +64,7 @@ export function OutlineTab() {
               {text}
               {priorityLabel}
             </span>
-            <div class={s.outlineItemColorBar} style={{ background: color }} />
+            <div class="w-[3px] h-2.5 rounded-sm shrink-0" style={{ background: color }} />
           </div>
         )
       })}

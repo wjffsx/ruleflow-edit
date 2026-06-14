@@ -1,7 +1,6 @@
 import type { EdgeData } from '@logicflow/core'
 import { lfInstance } from '../../store'
 import { t } from '../../i18n'
-import s from './RightPanel.module.css'
 
 /** Relation type color CSS variable mapping */
 const RELATION_COLORS: Record<string, string> = {
@@ -57,7 +56,7 @@ export function EdgeRelations({ nodeId }: { nodeId: string }) {
   return (
     <>
       <div class="rf-section-title">
-        <span class={s.sectionAccentBar} />
+        <span class="w-[3px] h-3 rounded-sm bg-[var(--rf-brand-accent)]" />
         {t('panel.connections')}
       </div>
 
@@ -65,11 +64,17 @@ export function EdgeRelations({ nodeId }: { nodeId: string }) {
         connections.map((conn, i) => (
           <div
             key={i}
-            class={s.connectionItem}
+            class="flex items-center gap-[var(--rf-space-2)] p-[var(--rf-space-2)] rounded-[var(--rf-radius-sm)] mb-1 text-[var(--rf-text-sm)]"
             style={{ background: `var(${conn.colorVar}-light)` }}
           >
-            <div class={s.connectionDot} style={{ background: `var(${conn.colorVar})` }} />
-            <span class={s.connectionLabel} style={{ color: `var(${conn.colorVar})` }}>
+            <div
+              class="w-1.5 h-1.5 rounded-[var(--rf-radius-full)] shrink-0"
+              style={{ background: `var(${conn.colorVar})` }}
+            />
+            <span
+              class="font-semibold text-[var(--rf-text-xs)]"
+              style={{ color: `var(${conn.colorVar})` }}
+            >
               {conn.relation}
             </span>
             <span style={{ color: 'var(--rf-text-primary)' }}>→</span>
@@ -77,10 +82,14 @@ export function EdgeRelations({ nodeId }: { nodeId: string }) {
           </div>
         ))
       ) : (
-        <div class={s.noConnections}>无连接关系</div>
+        <div class="text-[var(--rf-text-tertiary)] text-[var(--rf-text-sm)] py-[var(--rf-space-2)]">
+          无连接关系
+        </div>
       )}
 
-      <button class={s.addRelationBtn}>{t('panel.addRelation')}</button>
+      <button class="flex items-center gap-1 p-[var(--rf-space-2)] border border-dashed border-[var(--rf-border)] rounded-[var(--rf-radius-sm)] bg-transparent text-[var(--rf-text-tertiary)] text-[var(--rf-text-sm)] cursor-pointer w-full justify-center font-[var(--rf-font-sans)] hover:bg-[var(--rf-bg-hover)]">
+        {t('panel.addRelation')}
+      </button>
     </>
   )
 }

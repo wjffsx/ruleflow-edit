@@ -3,12 +3,11 @@ import { lfInstance, chainName, nodeCount, edgeCount } from '../../store'
 import { showSuccess, showWarning } from '../../services'
 import { t } from '../../i18n'
 import { isValidGraphData, safeJsonParse, RuleFlowError, ERROR_CODES } from '../../utils'
-import s from '../../styles/layout.module.css'
 import { ToolbarBtn } from './ToolbarBtn'
 
 export function FileGroup() {
   return (
-    <div class={s.toolbarGroup}>
+    <div class="flex items-center gap-px">
       <ToolbarBtn
         icon={FilePlus}
         title={t('toolbar.new')}

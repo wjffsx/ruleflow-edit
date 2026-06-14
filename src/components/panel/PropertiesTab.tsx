@@ -1,8 +1,8 @@
 import { FileText, Pin, ExternalLink, Pencil } from 'lucide-preact'
+import type { ComponentChild } from 'preact'
 import type { PanelMode } from '../../types/editor'
 import { selectedNodeId, panelMode, setPanelMode, lfInstance } from '../../store'
 import { t } from '../../i18n'
-import s from './RightPanel.module.css'
 import { EdgeRelations } from './EdgeRelations'
 
 /** Panel mode options */
@@ -12,10 +12,15 @@ const PANEL_MODES = [
   { key: 'inline', icon: Pencil, label: '内联' },
 ]
 
+interface PropertiesTabProps {
+  /** Custom property renderer for selected node */
+  propertyRenderer?: (node: unknown, onChange: (updated: unknown) => void) => ComponentChild
+}
+
 /**
  * Properties panel tab — displays node properties when a node is selected.
  */
-export function PropertiesTab() {
+export function PropertiesTab({ propertyRenderer }: PropertiesTabProps = {}) {
   const nodeId = selectedNodeId.value
   const currentMode = panelMode.value
 
@@ -77,15 +82,28 @@ export function PropertiesTab() {
     )
   }
 
+  // Use custom property renderer if provided
+  if (propertyRenderer) {
+    const handleNodeChange = (updated: unknown) => {
+      if (lf && nodeId) {
+        const model = lf.getNodeModelById(nodeId)
+        if (model && updated && typeof updated === 'object') {
+          model.setProperties({ ...model.properties, ...(updated as Record<string, unknown>) })
+        }
+      }
+    }
+    return <div class="rf-content">{propertyRenderer(nodeData, handleNodeChange)}</div>
+  }
+
   return (
     <div class="rf-content">
       {/* Panel mode switcher */}
-      <div class={s.modeSwitcher}>
+      <div class="flex gap-1 mb-[var(--rf-space-4)]">
         {PANEL_MODES.map(({ key, icon: Icon, label }) => (
           <button
             key={key}
             onClick={() => setPanelMode(key as PanelMode)}
-            class={`${s.modeBtn} ${currentMode === key ? s.modeBtnActive : ''}`}
+            class={`flex items-center gap-1 px-2 py-1 border border-[var(--rf-border)] rounded-[var(--rf-radius-sm)] bg-transparent text-[var(--rf-text-secondary)] cursor-pointer text-[var(--rf-text-2xs)] font-[var(--rf-font-sans)] hover:bg-[var(--rf-bg-hover)] ${currentMode === key ? 'border-[var(--rf-brand-primary)] bg-[var(--rf-brand-primary-light)] text-[var(--rf-brand-primary)] hover:bg-[var(--rf-brand-primary-light)]' : ''}`}
           >
             <Icon size={10} />
             {label}
@@ -117,7 +135,9 @@ export function PropertiesTab() {
               gap: 4,
             }}
           >
-            <span class={s.priorityBadge}>P:{nodeData.priority}</span>
+            <span class="px-2 py-0.5 rounded-[var(--rf-radius-sm)] bg-[var(--rf-brand-primary-light)] text-[var(--rf-brand-primary)] text-[var(--rf-text-xs)] font-semibold">
+              P:{nodeData.priority}
+            </span>
           </span>
         </div>
 
@@ -135,13 +155,13 @@ export function PropertiesTab() {
                 }
               }
             }}
-            class={s.toggleTrack}
+            class="w-8 h-[18px] rounded-[var(--rf-radius-full)] relative cursor-pointer transition-[background] duration-[var(--rf-duration-fast)]"
             style={{
               background: nodeData.enabled ? 'var(--rf-status-success)' : 'var(--rf-text-tertiary)',
             }}
           >
             <div
-              class={`${s.toggleThumb} ${nodeData.enabled ? s.toggleThumbOn : s.toggleThumbOff}`}
+              class={`w-3.5 h-3.5 rounded-[var(--rf-radius-full)] bg-white absolute top-[2px] shadow-[var(--rf-shadow-xs)] ${nodeData.enabled ? 'right-[2px]' : 'left-[2px]'}`}
             />
           </div>
         </div>

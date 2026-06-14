@@ -1,12 +1,11 @@
 import { Maximize, Map } from 'lucide-preact'
 import { lfInstance } from '../../store'
 import { t } from '../../i18n'
-import s from '../../styles/layout.module.css'
 import { ToolbarBtn } from './ToolbarBtn'
 
 export function ViewGroup() {
   return (
-    <div class={s.toolbarGroup}>
+    <div class="flex items-center gap-px">
       <ToolbarBtn
         icon={Maximize}
         title={t('toolbar.fullscreen')}

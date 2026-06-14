@@ -12,8 +12,6 @@ import {
 import { NODE_CATEGORIES, PORT_NODES, NOTE_NODE, ICON_MAP } from '../../data'
 import { searchService } from '../../services'
 import { t } from '../../i18n'
-import s from './Sidebar.module.css'
-import ls from '../../styles/layout.module.css'
 
 /** Lucide 图标组件属性 */
 interface LucideIconProps {
@@ -44,7 +42,7 @@ interface SidebarItemProps {
 function SidebarItem({ item, colorVar }: SidebarItemProps) {
   return (
     <div
-      class={s.sidebarItem}
+      class="flex items-center gap-[var(--rf-space-2)] py-[5px] pr-[var(--rf-space-3)] pl-[var(--rf-space-6)] text-[var(--rf-text-sm)] text-[var(--rf-text-primary)] cursor-grab transition-[background] duration-[var(--rf-duration-fast)]"
       draggable
       onDragStart={(e: DragEvent) => {
         e.dataTransfer!.setData('application/ruleflow-node', JSON.stringify(item))
@@ -60,9 +58,9 @@ function SidebarItem({ item, colorVar }: SidebarItemProps) {
         style={{ flexShrink: '0' }}
         color={`var(${colorVar || '--rf-brand-primary'})`}
       />
-      <span class={s.itemText}>{item.name}</span>
+      <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{item.name}</span>
       <div
-        class={s.itemColorBar}
+        class="w-[3px] h-3 rounded-sm shrink-0"
         style={{ background: `var(${colorVar || '--rf-brand-primary'})` }}
       />
     </div>
@@ -82,7 +80,7 @@ function CategorySection({ category }: CategorySectionProps) {
   return (
     <div>
       <div
-        class={s.categoryHeader}
+        class="flex items-center gap-[var(--rf-space-2)] py-[var(--rf-space-2)] px-[var(--rf-space-3)] text-[var(--rf-text-xs)] font-semibold text-[var(--rf-text-secondary)] cursor-pointer select-none border-t border-[var(--rf-border-light)] hover:bg-[var(--rf-bg-hover)]"
         onClick={() => toggleCategoryCollapse(category.id)}
         role="treeitem"
         aria-expanded={open}
@@ -95,7 +93,9 @@ function CategorySection({ category }: CategorySectionProps) {
           color={category.color}
         />
         <span style={{ flex: 1 }}>{category.name}</span>
-        <span class={s.categoryCount}>{category.items.length}</span>
+        <span class="text-[var(--rf-text-xs)] text-[var(--rf-text-tertiary)]">
+          {category.items.length}
+        </span>
       </div>
       {open &&
         category.items.map((item: NodeItem) => (
@@ -139,12 +139,17 @@ export function Sidebar() {
   if (collapsed) {
     return (
       <aside
-        class={ls.sidebar}
-        style={{ width: 'var(--sidebar-collapsed-width)' }}
+        class="flex flex-col h-full bg-[var(--rf-bg-primary)] border-r border-[var(--rf-border)] overflow-hidden transition-[width] duration-[var(--rf-duration-normal)]"
+        style={{ gridArea: 'sidebar', width: 'var(--sidebar-collapsed-width)' }}
         role="complementary"
         aria-label="组件面板"
       >
-        <button onClick={toggleSidebar} class={s.expandBtn} title="展开侧栏" aria-label="展开侧栏">
+        <button
+          onClick={toggleSidebar}
+          class="flex items-center justify-center w-full h-12 border-none bg-transparent text-[var(--rf-text-tertiary)] cursor-pointer"
+          title="展开侧栏"
+          aria-label="展开侧栏"
+        >
           <PanelLeft size={18} />
         </button>
       </aside>
@@ -152,13 +157,18 @@ export function Sidebar() {
   }
 
   return (
-    <aside class={ls.sidebar} role="complementary" aria-label="组件面板">
+    <aside
+      class="flex flex-col h-full bg-[var(--rf-bg-primary)] border-r border-[var(--rf-border)] overflow-hidden transition-[width] duration-[var(--rf-duration-normal)]"
+      style={{ gridArea: 'sidebar' }}
+      role="complementary"
+      aria-label="组件面板"
+    >
       {/* Search */}
-      <div class={s.searchContainer}>
-        <div class={s.searchRow}>
+      <div class="p-[var(--rf-space-3)] border-b border-[var(--rf-border-light)]">
+        <div class="flex items-center gap-1.5">
           <Search size={14} style={{ color: 'var(--rf-text-tertiary)', flexShrink: 0 }} />
           <input
-            class={s.searchInput}
+            class="w-full h-[30px] px-[var(--rf-space-3)] border border-[var(--rf-border)] rounded-[var(--rf-radius-sm)] bg-[var(--rf-bg-secondary)] text-[var(--rf-text-primary)] text-[var(--rf-text-sm)] font-[var(--rf-font-sans)] outline-none box-border transition-[border-color] duration-[var(--rf-duration-fast)] focus:border-[var(--rf-brand-primary)] placeholder:text-[var(--rf-text-tertiary)]"
             placeholder={t('sidebar.search')}
             value={query}
             onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
@@ -166,7 +176,7 @@ export function Sidebar() {
           />
           <button
             onClick={toggleSidebar}
-            class={s.collapseBtn}
+            class="flex items-center justify-center w-6 h-6 border-none bg-transparent text-[var(--rf-text-tertiary)] cursor-pointer rounded-[var(--rf-radius-sm)] shrink-0 hover:bg-[var(--rf-bg-hover)]"
             title="折叠侧栏"
             aria-label="折叠侧栏"
           >
@@ -176,18 +186,20 @@ export function Sidebar() {
       </div>
 
       {/* Scroll area */}
-      <div class={s.scrollArea}>
+      <div class="flex-1 overflow-y-auto overflow-x-hidden py-[var(--rf-space-1)]">
         {/* Search results */}
         {searchResults ? (
           searchResults.length === 0 ? (
-            <div class={s.noResults}>{t('sidebar.noResults')}</div>
+            <div class="py-[var(--rf-space-6)] px-[var(--rf-space-3)] text-center text-[var(--rf-text-tertiary)] text-[var(--rf-text-sm)]">
+              {t('sidebar.noResults')}
+            </div>
           ) : (
             searchResults.map((item: SearchItem) => <SidebarItem key={item.type} item={item} />)
           )
         ) : (
           <>
             {/* Port nodes */}
-            <div class={s.sectionHeader}>
+            <div class="flex items-center gap-[var(--rf-space-2)] py-[var(--rf-space-2)] px-[var(--rf-space-3)] text-[var(--rf-text-xs)] font-semibold text-[var(--rf-text-secondary)] cursor-pointer select-none uppercase tracking-wide">
               <Star size={12} style={{ color: 'var(--rf-brand-accent)' }} />
               {t('sidebar.favorites')}
             </div>

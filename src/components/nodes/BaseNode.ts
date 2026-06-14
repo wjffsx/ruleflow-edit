@@ -6,6 +6,7 @@
  */
 import { RectNode, RectNodeModel, h } from '@logicflow/core'
 import { getNodeStyle } from '../../data'
+import { LogicGateModel, LogicGateView, LOGIC_GATE_NODE_TYPE } from './LogicGateNode'
 
 // v2.0: Lucide icon names replacing Emoji — these are rendered as SVG text symbols
 // For LogicFlow SVG rendering, we use simple Unicode symbols that approximate the icon
@@ -61,9 +62,35 @@ export class RuleFlowBaseView extends RectNode {
     const label = model.text?.value || nodeType
     const priority = model.properties?.priority || 1
     const enabled = model.properties?.enabled !== false
+    const debugState = model.properties?.debugState as string | undefined
 
-    return h('g', {}, [
-      // Card shadow
+    // Debug state visual overrides
+    const debugStroke =
+      debugState === 'processing'
+        ? 'var(--rf-status-processing, #7c3aed)'
+        : debugState === 'success'
+          ? 'var(--rf-status-success, #16a34a)'
+          : debugState === 'failure'
+            ? 'var(--rf-status-danger, #dc2626)'
+            : color
+
+    const debugStrokeWidth = debugState ? 2.5 : 1
+
+    // Debug state glow filter
+    const debugFilter =
+      debugState === 'processing'
+        ? 'url(#rf-debug-pulse)'
+        : debugState === 'success'
+          ? 'url(#rf-debug-success-glow)'
+          : debugState === 'failure'
+            ? 'url(#rf-debug-failure-glow)'
+            : 'url(#rf-shadow-sm)'
+
+    // Breakpoint marker
+    const hasBreakpoint = model.properties?.breakpoint === true
+
+    const children: any[] = [
+      // Card shadow / debug glow
       h('rect', {
         x: x - width / 2,
         y: y - height / 2,
@@ -72,9 +99,9 @@ export class RuleFlowBaseView extends RectNode {
         rx: 8,
         ry: 8,
         fill: 'var(--rf-bg-primary, #ffffff)',
-        stroke: color,
-        strokeWidth: 1,
-        filter: 'url(#rf-shadow-sm)',
+        stroke: debugStroke,
+        strokeWidth: debugStrokeWidth,
+        filter: debugFilter,
       }),
       // Color bar at top (4px)
       h('rect', {
@@ -84,7 +111,7 @@ export class RuleFlowBaseView extends RectNode {
         height: 4,
         rx: 8,
         ry: 8,
-        fill: color,
+        fill: debugState ? debugStroke : color,
         clipPath: `url(#rf-topbar-${model.id})`,
       }),
       // Clip path for top bar
@@ -96,14 +123,14 @@ export class RuleFlowBaseView extends RectNode {
           height: 4,
         }),
       ]),
-      // Node icon (v2.0: Unicode symbol instead of Emoji)
+      // Node icon
       h(
         'text',
         {
           x: x - width / 2 + 14,
           y: y - height / 2 + 24,
           fontSize: 14,
-          fill: color,
+          fill: debugState ? debugStroke : color,
           fontFamily: 'var(--rf-font-sans, sans-serif)',
           textAnchor: 'middle',
         },
@@ -156,7 +183,7 @@ export class RuleFlowBaseView extends RectNode {
         },
         model.properties?.summary || '',
       ),
-      // Enabled indicator (v2.0: circle + shape for dual encoding / color-blind safety)
+      // Enabled indicator
       h('circle', {
         cx: x + width / 2 - 12,
         cy: y - height / 2 + 24,
@@ -165,7 +192,7 @@ export class RuleFlowBaseView extends RectNode {
         stroke: enabled ? 'var(--rf-status-success, #16a34a)' : 'var(--rf-text-tertiary, #78716c)',
         strokeWidth: 0,
       }),
-      // v2.0: Dual encoding — checkmark inside circle for enabled, x for disabled
+      // Dual encoding — checkmark/x inside circle
       enabled
         ? h(
             'text',
@@ -191,7 +218,57 @@ export class RuleFlowBaseView extends RectNode {
             },
             '\u2717',
           ),
-    ])
+    ]
+
+    // Breakpoint marker (red circle at top-left corner)
+    if (hasBreakpoint) {
+      children.push(
+        h('circle', {
+          cx: x - width / 2 + 8,
+          cy: y - height / 2 + 8,
+          r: 5,
+          fill: 'var(--rf-status-danger, #dc2626)',
+          stroke: '#ffffff',
+          strokeWidth: 1.5,
+        }),
+      )
+    }
+
+    // Debug state overlay indicator (bottom-right)
+    if (debugState && debugState !== 'idle') {
+      const stateIcon =
+        debugState === 'processing'
+          ? '\u23F3' // ⏳
+          : debugState === 'success'
+            ? '\u2713' // ✓
+            : '\u2717' // ✗
+
+      children.push(
+        h('circle', {
+          cx: x + width / 2 - 8,
+          cy: y + height / 2 - 8,
+          r: 7,
+          fill: debugStroke,
+          stroke: 'var(--rf-bg-primary, #ffffff)',
+          strokeWidth: 1.5,
+        }),
+        h(
+          'text',
+          {
+            x: x + width / 2 - 8,
+            y: y + height / 2 - 5,
+            fontSize: 9,
+            fill: '#ffffff',
+            textAnchor: 'middle',
+            fontFamily: 'var(--rf-font-sans, sans-serif)',
+            fontWeight: 700,
+          },
+          stateIcon,
+        ),
+      )
+    }
+
+    return h('g', {}, children)
   }
 }
 
@@ -208,6 +285,7 @@ export const CUSTOM_NODE_TYPES: Record<
   'rf-ext-action': { model: RuleFlowBaseModel, view: RuleFlowBaseView },
   'rf-sub-chain': { model: RuleFlowBaseModel, view: RuleFlowBaseView },
   'rf-note': { model: RuleFlowBaseModel, view: RuleFlowBaseView },
+  [LOGIC_GATE_NODE_TYPE]: { model: LogicGateModel, view: LogicGateView },
 }
 
 export { NODE_ICONS }

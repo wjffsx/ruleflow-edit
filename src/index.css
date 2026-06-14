@@ -1,6 +1,7 @@
 /* RuleFlow Editor — Global Styles */
 /* Aligned with VPPTU Visual Design Spec v2.0 */
 
+@import 'tailwindcss';
 @import './styles/components.css';
 
 /* Reset */

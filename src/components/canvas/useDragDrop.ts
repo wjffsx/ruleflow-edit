@@ -1,13 +1,21 @@
-import type { LogicFlow } from '@logicflow/core'
 import { NODE_VISUAL_MAP, CATEGORY_TO_LF_TYPE } from '../../data'
 import { isValidNodeItem, safeJsonParse } from '../../utils'
+import type { LogicGateOp } from '../nodes/LogicGateNode'
 
 /** Parameters for useDragDrop hook */
 interface UseDragDropParams {
   /** Mutable ref holding the LogicFlow instance */
-  lfRef: { current: LogicFlow | null }
+  lfRef: { current: import('@logicflow/core').LogicFlow | null }
   /** Callback to set whether the canvas is empty */
   setIsEmpty: (v: boolean) => void
+}
+
+/** Extract the logic gate operator from node type */
+function getLogicGateOp(type: string): LogicGateOp | null {
+  if (type === 'logic_gate_and') return 'AND'
+  if (type === 'logic_gate_or') return 'OR'
+  if (type === 'logic_gate_not') return 'NOT'
+  return null
 }
 
 /** Hook providing drag-drop handlers for adding nodes to the canvas */
@@ -30,13 +38,31 @@ export function useDragDrop({ lfRef, setIsEmpty }: UseDragDropParams) {
         item.type === 'output_port'
           ? 'rf-output-port'
           : CATEGORY_TO_LF_TYPE[visualCategory as string] || 'rf-action'
+
+      // Build properties
+      const properties: Record<string, unknown> = {
+        nodeType: visualCategory,
+        icon: item.icon,
+        priority: 1,
+        enabled: true,
+      }
+
+      // Add logic gate specific properties
+      const gateOp = getLogicGateOp(item.type as string)
+      if (gateOp) {
+        properties.conditionOp = gateOp
+        properties.roleInRule = 'logic_gate'
+        properties.collapsed = false
+        properties.childCount = 0
+      }
+
       lf.addNode({
         id: `${item.type}_${Date.now()}`,
         type: lfType,
         x: point.x,
         y: point.y,
         text: item.name,
-        properties: { nodeType: visualCategory, icon: item.icon, priority: 1, enabled: true },
+        properties,
       })
       setIsEmpty(false)
     } catch (err) {

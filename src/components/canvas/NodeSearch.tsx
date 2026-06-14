@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, useMemo } from 'preact/hooks'
 import type { RefObject } from 'preact'
 import { Search, X, ChevronUp, ChevronDown } from 'lucide-preact'
 import { searchService } from '../../services'
-import s from './NodeSearch.module.css'
 
 /** 节点搜索组件属性 */
 interface NodeSearchProps {
@@ -68,11 +67,15 @@ export function NodeSearch({ nodes, onClose, onLocateNode }: NodeSearchProps) {
   }
 
   return (
-    <div class={s.container} role="search" aria-label="搜索节点">
+    <div
+      class="absolute top-2 left-1/2 -translate-x-1/2 z-[var(--rf-z-popover,300)] bg-[var(--rf-bg-elevated,#ffffff)] border border-[var(--rf-border,#e5e7eb)] rounded-[var(--rf-radius-lg,8px)] shadow-[var(--rf-shadow-lg,0_10px_15px_-3px_rgba(0,0,0,0.1))] flex items-center gap-[var(--rf-space-2,8px)] px-2.5 py-1.5 min-w-[340px] max-w-[480px] rf-fade-in font-[var(--rf-font-sans,sans-serif)]"
+      role="search"
+      aria-label="搜索节点"
+    >
       <Search size={14} style={{ color: 'var(--rf-text-tertiary)', flexShrink: 0 }} />
       <input
         ref={inputRef}
-        class={s.searchInput}
+        class="flex-1 border border-[var(--rf-border)] rounded-[var(--rf-radius-sm)] bg-[var(--rf-bg-secondary)] text-[var(--rf-text-primary)] text-[var(--rf-text-sm)] font-[var(--rf-font-sans)] outline-none box-border h-7 px-[var(--rf-space-2)] focus:border-[var(--rf-brand-primary)] placeholder:text-[var(--rf-text-tertiary)]"
         placeholder="搜索节点..."
         value={query}
         onInput={handleInput}
@@ -80,18 +83,37 @@ export function NodeSearch({ nodes, onClose, onLocateNode }: NodeSearchProps) {
         aria-label="搜索节点名称"
       />
       {query && results.length > 0 && (
-        <span class={s.resultCount}>
+        <span class="text-[var(--rf-text-2xs,9px)] text-[var(--rf-text-tertiary,#9ca3af)] whitespace-nowrap min-w-[40px] text-center">
           {currentIndex + 1}/{results.length}
         </span>
       )}
-      {query && results.length === 0 && <span class={s.resultCount}>无结果</span>}
-      <button class={s.iconBtn} onClick={navigatePrev} title="上一个" aria-label="上一个匹配">
+      {query && results.length === 0 && (
+        <span class="text-[var(--rf-text-2xs,9px)] text-[var(--rf-text-tertiary,#9ca3af)] whitespace-nowrap min-w-[40px] text-center">
+          无结果
+        </span>
+      )}
+      <button
+        class="flex items-center justify-center w-6 h-6 border-none bg-transparent text-[var(--rf-text-tertiary,#9ca3af)] cursor-pointer rounded-[var(--rf-radius-sm)] p-0 shrink-0 hover:bg-[var(--rf-bg-hover)]"
+        onClick={navigatePrev}
+        title="上一个"
+        aria-label="上一个匹配"
+      >
         <ChevronUp size={14} />
       </button>
-      <button class={s.iconBtn} onClick={navigateNext} title="下一个" aria-label="下一个匹配">
+      <button
+        class="flex items-center justify-center w-6 h-6 border-none bg-transparent text-[var(--rf-text-tertiary,#9ca3af)] cursor-pointer rounded-[var(--rf-radius-sm)] p-0 shrink-0 hover:bg-[var(--rf-bg-hover)]"
+        onClick={navigateNext}
+        title="下一个"
+        aria-label="下一个匹配"
+      >
         <ChevronDown size={14} />
       </button>
-      <button class={s.iconBtn} onClick={onClose} title="关闭" aria-label="关闭搜索">
+      <button
+        class="flex items-center justify-center w-6 h-6 border-none bg-transparent text-[var(--rf-text-tertiary,#9ca3af)] cursor-pointer rounded-[var(--rf-radius-sm)] p-0 shrink-0 hover:bg-[var(--rf-bg-hover)]"
+        onClick={onClose}
+        title="关闭"
+        aria-label="关闭搜索"
+      >
         <X size={14} />
       </button>
     </div>

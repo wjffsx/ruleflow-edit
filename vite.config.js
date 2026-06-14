@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite'
 import preact from '@preact/preset-vite'
+import tailwindcss from '@tailwindcss/vite'
 import dts from 'vite-plugin-dts'
 
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     preact(),
     dts({
       insertTypesEntry: true,
@@ -13,11 +15,6 @@ export default defineConfig({
       skipDiagnostics: true,
     }),
   ],
-  css: {
-    modules: {
-      localsConvention: 'dashesOnly',
-    },
-  },
   resolve: {
     alias: {
       'react': 'preact/compat',

@@ -5,7 +5,14 @@ import { MiniMap, Snapshot, SelectionSelect } from '@logicflow/extension'
 import '@logicflow/core/dist/index.css'
 import '@logicflow/extension/dist/index.css'
 import { RuleFlowBaseModel, RuleFlowBaseView, CUSTOM_NODE_TYPES } from '../nodes/BaseNode'
-import { RelationEdgeModel, RelationEdgeView, RELATION_EDGE_TYPE } from '../nodes/RelationEdges'
+import {
+  RelationEdgeModel,
+  RelationEdgeView,
+  RELATION_EDGE_TYPE,
+  ConditionTreeEdgeModel,
+  ConditionTreeEdgeView,
+  CONDITION_TREE_EDGE_TYPE,
+} from '../nodes/RelationEdges'
 import { setLfInstance } from '../../store'
 import { setupLogicFlowEvents } from './useLogicFlowEvents'
 
@@ -63,11 +70,19 @@ export function useLogicFlow({
       model: RelationEdgeModel,
       view: RelationEdgeView,
     }))
+    lf.register(CONDITION_TREE_EDGE_TYPE, () => ({
+      model: ConditionTreeEdgeModel,
+      view: ConditionTreeEdgeView,
+    }))
 
     lf.render(demoData)
     setTimeout(() => lf.fitView(60), 100)
     lfRef.current = lf
     setLfInstance(lf)
+
+    // ── Inject SVG filter defs for debug glow effects ──
+    injectSvgFilterDefs(containerRef.current)
+
     // Expose for debugging (dev only)
     if (import.meta.env.DEV) {
       ;(window as unknown as Record<string, unknown>).__lf = lf
@@ -91,4 +106,54 @@ export function useLogicFlow({
   }, [])
 
   return { lfRef }
+}
+
+/**
+ * Inject SVG <defs> with filter definitions for debug glow effects
+ * and default drop shadow into the LogicFlow SVG canvas.
+ */
+function injectSvgFilterDefs(container: HTMLElement | null): void {
+  if (!container) return
+  const svgEl = container.querySelector('svg.lf-graph')
+  if (!svgEl) {
+    // Retry after a short delay if SVG not yet rendered
+    setTimeout(() => {
+      const retrySvg = container.querySelector('svg.lf-graph')
+      if (retrySvg) appendFilterDefs(retrySvg)
+    }, 200)
+    return
+  }
+  appendFilterDefs(svgEl)
+}
+
+function appendFilterDefs(svgEl: SVGElement): void {
+  // Avoid duplicate injection
+  if (svgEl.querySelector('#rf-svg-filters')) return
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
+  defs.setAttribute('id', 'rf-svg-filters')
+
+  defs.innerHTML = `
+    <!-- Default drop shadow -->
+    <filter id="rf-shadow-sm" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="var(--rf-shadow-color, rgba(0,0,0,0.1))" />
+    </filter>
+
+    <!-- Debug: processing pulse glow -->
+    <filter id="rf-debug-pulse" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="var(--rf-status-processing, #7c3aed)" flood-opacity="0.6" />
+    </filter>
+
+    <!-- Debug: success glow -->
+    <filter id="rf-debug-success-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="var(--rf-status-success, #16a34a)" flood-opacity="0.5" />
+    </filter>
+
+    <!-- Debug: failure glow -->
+    <filter id="rf-debug-failure-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="var(--rf-status-danger, #dc2626)" flood-opacity="0.5" />
+    </filter>
+  `
+
+  svgEl.prepend(defs)
 }

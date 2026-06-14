@@ -24,8 +24,7 @@ import {
   stepDebug,
   toggleBreakpoint,
 } from '../../store'
-import { simulateDebug, countStates, clearSimulationInterval } from './debugSimulation'
-import s from './DebugPanel.module.css'
+import { startDebugWithEngine, countStates, clearSimulationInterval } from './debugSimulation'
 
 export function DebugPanel() {
   const running = isDebugRunning.value
@@ -53,12 +52,12 @@ export function DebugPanel() {
         运行控制
       </div>
 
-      <div class={s.ctrlRow}>
+      <div class="flex gap-[var(--rf-space-2,8px)] mb-[var(--rf-space-3,12px)]">
         {!running ? (
           <button
-            class={s.ctrlBtn}
+            class="flex items-center justify-center w-[34px] h-[34px] border border-[var(--rf-border)] rounded-[var(--rf-radius-md,6px)] bg-[var(--rf-bg-primary)] text-[var(--rf-text-secondary)] cursor-pointer transition-all duration-120 hover:bg-[var(--rf-bg-hover)]"
             style={{ color: 'var(--rf-status-success)' }}
-            onClick={simulateDebug}
+            onClick={() => startDebugWithEngine()}
             title="运行"
             aria-label="运行调试"
           >
@@ -67,7 +66,7 @@ export function DebugPanel() {
         ) : (
           <>
             <button
-              class={`${s.ctrlBtn} ${paused ? s.ctrlBtnActive : ''}`}
+              class={`flex items-center justify-center w-[34px] h-[34px] border border-[var(--rf-border)] rounded-[var(--rf-radius-md,6px)] bg-[var(--rf-bg-primary)] text-[var(--rf-text-secondary)] cursor-pointer transition-all duration-120 hover:bg-[var(--rf-bg-hover)] ${paused ? 'border-[var(--rf-brand-primary)] bg-[var(--rf-brand-primary-light)] text-[var(--rf-brand-primary)] hover:bg-[var(--rf-brand-primary-light)]' : ''}`}
               style={{ color: 'var(--rf-brand-primary)' }}
               onClick={paused ? resumeDebug : pauseDebug}
               title={paused ? '继续' : '暂停'}
@@ -76,7 +75,7 @@ export function DebugPanel() {
               {paused ? <Play size={16} /> : <Pause size={16} />}
             </button>
             <button
-              class={s.ctrlBtn}
+              class="flex items-center justify-center w-[34px] h-[34px] border border-[var(--rf-border)] rounded-[var(--rf-radius-md,6px)] bg-[var(--rf-bg-primary)] text-[var(--rf-text-secondary)] cursor-pointer transition-all duration-120 hover:bg-[var(--rf-bg-hover)]"
               style={{ color: 'var(--rf-status-danger)' }}
               onClick={stopDebug}
               title="停止"
@@ -84,7 +83,12 @@ export function DebugPanel() {
             >
               <Square size={16} />
             </button>
-            <button class={s.ctrlBtn} onClick={stepDebug} title="单步执行" aria-label="单步执行">
+            <button
+              class="flex items-center justify-center w-[34px] h-[34px] border border-[var(--rf-border)] rounded-[var(--rf-radius-md,6px)] bg-[var(--rf-bg-primary)] text-[var(--rf-text-secondary)] cursor-pointer transition-all duration-120 hover:bg-[var(--rf-bg-hover)]"
+              onClick={stepDebug}
+              title="单步执行"
+              aria-label="单步执行"
+            >
               <SkipForward size={16} />
             </button>
           </>
@@ -94,14 +98,17 @@ export function DebugPanel() {
       {/* Progress bar */}
       {running && (
         <div>
-          <div class={s.progressInfo}>
+          <div class="flex justify-between text-[var(--rf-text-2xs,9px)] text-[var(--rf-text-tertiary)] mb-1">
             <span>
               步骤 {step}/{total}
             </span>
             <span>{progressPct}%</span>
           </div>
-          <div class={s.progressBar}>
-            <div class={s.progressFill} style={{ width: `${progressPct}%` }} />
+          <div class="w-full h-1.5 rounded bg-[var(--rf-bg-tertiary,#e5e7eb)] overflow-hidden mb-[var(--rf-space-3,12px)]">
+            <div
+              class="h-full rounded bg-[var(--rf-brand-primary)] transition-[width] duration-300"
+              style={{ width: `${progressPct}%` }}
+            />
           </div>
         </div>
       )}
@@ -111,42 +118,51 @@ export function DebugPanel() {
         <Bug size={12} />
         节点状态
       </div>
-      <div class={s.cardGrid}>
+      <div class="grid grid-cols-3 gap-[var(--rf-space-2,8px)] mb-[var(--rf-space-4,16px)]">
         <div
-          class={s.statCard}
+          class="p-[var(--rf-space-2,8px)] rounded-[var(--rf-radius-md,6px)] text-[var(--rf-text-xs,10px)]"
           style={{
             background: 'var(--rf-status-success-light)',
             borderLeft: '3px solid var(--rf-status-success)',
           }}
         >
-          <div class={s.statValue} style={{ color: 'var(--rf-status-success)' }}>
+          <div
+            class="font-bold text-[var(--rf-text-lg,16px)]"
+            style={{ color: 'var(--rf-status-success)' }}
+          >
             {counts.success}
           </div>
-          <div class={s.statLabel}>成功</div>
+          <div class="text-[var(--rf-text-secondary)]">成功</div>
         </div>
         <div
-          class={s.statCard}
+          class="p-[var(--rf-space-2,8px)] rounded-[var(--rf-radius-md,6px)] text-[var(--rf-text-xs,10px)]"
           style={{
             background: 'var(--rf-status-danger-light)',
             borderLeft: '3px solid var(--rf-status-danger)',
           }}
         >
-          <div class={s.statValue} style={{ color: 'var(--rf-status-danger)' }}>
+          <div
+            class="font-bold text-[var(--rf-text-lg,16px)]"
+            style={{ color: 'var(--rf-status-danger)' }}
+          >
             {counts.failure}
           </div>
-          <div class={s.statLabel}>失败</div>
+          <div class="text-[var(--rf-text-secondary)]">失败</div>
         </div>
         <div
-          class={s.statCard}
+          class="p-[var(--rf-space-2,8px)] rounded-[var(--rf-radius-md,6px)] text-[var(--rf-text-xs,10px)]"
           style={{
             background: 'var(--rf-status-processing-light)',
             borderLeft: '3px solid var(--rf-status-processing)',
           }}
         >
-          <div class={s.statValue} style={{ color: 'var(--rf-status-processing)' }}>
+          <div
+            class="font-bold text-[var(--rf-text-lg,16px)]"
+            style={{ color: 'var(--rf-status-processing)' }}
+          >
             {counts.processing}
           </div>
-          <div class={s.statLabel}>处理中</div>
+          <div class="text-[var(--rf-text-secondary)]">处理中</div>
         </div>
       </div>
 
@@ -158,10 +174,13 @@ export function DebugPanel() {
             断点
           </div>
           {breakpoints.map((bp: string) => (
-            <div key={bp} class={s.breakpointItem}>
-              <div class={s.breakpointDot} />
+            <div key={bp} class="flex items-center gap-1.5 py-1 text-[var(--rf-text-sm,11px)]">
+              <div class="w-2 h-2 rounded-[var(--rf-radius-full)] bg-[var(--rf-status-danger)]" />
               <span style={{ flex: 1, color: 'var(--rf-text-primary)' }}>{bp}</span>
-              <button class={s.breakpointRemoveBtn} onClick={() => toggleBreakpoint(bp)}>
+              <button
+                class="border-none bg-transparent text-[var(--rf-text-tertiary)] cursor-pointer text-[var(--rf-text-2xs,9px)] hover:text-[var(--rf-text-primary)]"
+                onClick={() => toggleBreakpoint(bp)}
+              >
                 移除
               </button>
             </div>
@@ -174,9 +193,11 @@ export function DebugPanel() {
         <Clock size={12} />
         执行日志
       </div>
-      <div class={s.logScroll}>
+      <div class="max-h-[200px] overflow-y-auto">
         {messages.length === 0 ? (
-          <div class={s.logEmpty}>运行规则链后查看执行日志</div>
+          <div class="text-[var(--rf-text-tertiary)] text-[var(--rf-text-sm,11px)] text-center py-[var(--rf-space-4,16px)]">
+            运行规则链后查看执行日志
+          </div>
         ) : (
           messages.map((msg: any, i: number) => {
             const iconMap: Record<string, any> = {
@@ -197,10 +218,15 @@ export function DebugPanel() {
               ? new Date(msg.time).toLocaleTimeString('zh-CN', { hour12: false })
               : ''
             return (
-              <div key={i} class={s.logItem}>
+              <div
+                key={i}
+                class="flex items-start gap-[var(--rf-space-2,8px)] py-1.5 border-b border-[var(--rf-border-light,#f3f4f6)] text-[var(--rf-text-sm,11px)] font-[var(--rf-font-mono,monospace)]"
+              >
                 <Icon size={11} style={{ color, flexShrink: 0, marginTop: 2 }} />
-                <span class={s.logTime}>{time}</span>
-                <span class={s.logMessage}>{msg.message}</span>
+                <span class="text-[var(--rf-text-tertiary)] text-[var(--rf-text-2xs,9px)] shrink-0">
+                  {time}
+                </span>
+                <span class="text-[var(--rf-text-primary)] flex-1">{msg.message}</span>
               </div>
             )
           })

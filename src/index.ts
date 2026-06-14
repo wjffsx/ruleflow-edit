@@ -31,6 +31,19 @@ export type {
 } from './types/editor'
 
 export type {
+  RuleFlowDocument,
+  RuleFlowNode,
+  RuleFlowEdge,
+  RuleChainOutput,
+  RoleInRule,
+  ConditionOp,
+  RelationType as EdgeRelationType,
+  EvaluationMode,
+} from './types/ruleflowDocument'
+
+export { fromYAML, toYAML, createEmptyDocument, resetIdCounter } from './types/ruleflowDocument'
+
+export type {
   NodeData,
   EdgeData,
   GraphData,
@@ -43,7 +56,8 @@ export type {
 
 // ── Components ─────────────────────────────────────────────────────
 export { App } from './app'
-export { CanvasViewport } from './components/canvas/CanvasViewport'
+export { RuleFlowEditor } from './layout/RuleFlowEditor'
+export type { RuleFlowEditorProps, DebugState } from './layout/RuleFlowEditor'
 export { CommandPalette } from './components/canvas/CommandPalette'
 export { EmptyState } from './components/canvas/EmptyState'
 export { NodeSearch } from './components/canvas/NodeSearch'
@@ -79,8 +93,17 @@ export {
   RelationEdgeModel,
   RelationEdgeView,
   RELATION_EDGE_TYPE,
+  ConditionTreeEdgeModel,
+  ConditionTreeEdgeView,
+  CONDITION_TREE_EDGE_TYPE,
   getRelationColor,
 } from './components/nodes/RelationEdges'
+export {
+  LogicGateModel,
+  LogicGateView,
+  LOGIC_GATE_NODE_TYPE,
+} from './components/nodes/LogicGateNode'
+export type { LogicGateOp } from './components/nodes/LogicGateNode'
 
 // ── Store (public signals & actions only) ──────────────────────────
 export {
@@ -158,7 +181,27 @@ export {
 // ── Services ───────────────────────────────────────────────────────
 export { searchService } from './services/searchService'
 export { calculateSimplePosition } from './services/floatingPosition'
-export { showSuccess, showError, showWarning, showInfo } from './services/toastService'
+export {
+  addToast,
+  showSuccess,
+  showError,
+  showWarning,
+  showInfo,
+  ToastContainer,
+} from './services/toastService'
+export {
+  setDebugEngine,
+  getDebugEngine,
+  startDebugWithEngine,
+  stepDebugWithEngine,
+  pauseDebugWithEngine,
+  resumeDebugWithEngine,
+  stopDebugWithEngine,
+  getDebugStateSnapshot,
+  countStates,
+  SimulationEngine,
+} from './services/debugEngine'
+export type { DebugEngine, DebugStepResult, DebugStateSnapshot } from './services/debugEngine'
 
 // ── Utils ──────────────────────────────────────────────────────────
 export {

@@ -3,12 +3,11 @@ import { lfInstance } from '../../store'
 import { showSuccess, showWarning } from '../../services'
 import { t } from '../../i18n'
 import { RuleFlowError, ERROR_CODES } from '../../utils'
-import s from '../../styles/layout.module.css'
 import { ToolbarBtn } from './ToolbarBtn'
 
 export function LayoutGroup() {
   return (
-    <div class={s.toolbarGroup}>
+    <div class="flex items-center gap-px">
       <ToolbarBtn
         icon={LayoutGrid}
         title={t('toolbar.autolayout')}

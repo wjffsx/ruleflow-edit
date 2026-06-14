@@ -1,5 +1,4 @@
 import type { LucideIcon } from 'lucide-preact'
-import s from '../../styles/layout.module.css'
 
 /** Props for ToolbarBtn component */
 interface ToolbarBtnProps {
@@ -25,13 +24,16 @@ export function ToolbarBtn({
   active,
   disabled,
 }: ToolbarBtnProps) {
-  const cls = [s.toolbarBtn, active ? s.toolbarBtnActive : '', disabled ? s.toolbarBtnDisabled : '']
-    .filter(Boolean)
-    .join(' ')
+  const baseClass =
+    'flex items-center justify-center gap-1 h-[30px] min-w-[30px] px-1.5 border-none bg-transparent rounded-[var(--rf-radius-sm)] cursor-pointer text-[var(--rf-text-xs)] font-[var(--rf-font-sans)] transition-all duration-[var(--rf-duration-fast)] whitespace-nowrap'
+  const colorClass = active
+    ? ' bg-[var(--rf-brand-primary-light)] text-[var(--rf-brand-primary)] hover:bg-[var(--rf-brand-primary-light)] hover:text-[var(--rf-brand-primary)]'
+    : ' text-[var(--rf-text-secondary)] hover:bg-[var(--rf-bg-hover)] hover:text-[var(--rf-text-primary)]'
+  const disabledClass = disabled ? ' opacity-40 cursor-default' : ''
 
   return (
     <button
-      class={cls}
+      class={`${baseClass}${colorClass}${disabledClass}`}
       title={title || label}
       onClick={disabled ? undefined : onClick}
       disabled={disabled}

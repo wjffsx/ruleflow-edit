@@ -1,13 +1,12 @@
 import { Copy, Trash2, ToggleLeft } from 'lucide-preact'
 import { lfInstance, selectedNodeId } from '../../store'
 import { showInfo } from '../../services'
-import s from '../../styles/layout.module.css'
 import { ToolbarBtn } from './ToolbarBtn'
 
 export function ContextActions() {
   return (
-    <div class={s.toolbarGroup}>
-      <div class={s.toolbarDivider} />
+    <div class="flex items-center gap-px">
+      <div class="w-px h-5 bg-[var(--rf-border)] mx-[var(--rf-space-2)] shrink-0" />
       <ToolbarBtn
         icon={Copy}
         title="复制"

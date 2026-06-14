@@ -22,7 +22,6 @@ import {
   warningCount,
 } from '../../store'
 import { t } from '../../i18n'
-import s from '../../styles/layout.module.css'
 
 const SEGMENT_STYLE: Record<string, string | number> = {
   display: 'flex',
@@ -69,7 +68,12 @@ export function StatusBar() {
   const status = STATUS_MAP[canvasStatus.value] || STATUS_MAP.editing
 
   return (
-    <footer class={s.statusbar} role="contentinfo" aria-label="状态栏">
+    <footer
+      class="flex items-center h-[var(--statusbar-height)] px-[var(--rf-space-3)] bg-[var(--rf-bg-secondary)] border-t border-[var(--rf-border)] gap-[var(--rf-space-3)] text-[var(--rf-text-2xs)] text-[var(--rf-text-tertiary)] z-[var(--rf-z-toolbar)]"
+      style={{ gridArea: 'status' }}
+      role="contentinfo"
+      aria-label="状态栏"
+    >
       {/* Canvas status */}
       <div style={SEGMENT_STYLE}>
         <div style={dotStyle(status.color)} />
@@ -123,7 +127,7 @@ export function StatusBar() {
       </div>
 
       {/* Spacer */}
-      <div class={s.spacer} />
+      <div class="flex-1" />
 
       {/* Errors / Warnings */}
       {(errorCount.value > 0 || warningCount.value > 0) && (

@@ -78,6 +78,59 @@ export class RelationEdgeView extends PolylineEdge {
 // Edge registration config
 export const RELATION_EDGE_TYPE = 'relation-edge'
 
+// ── Condition tree edge type ──────────────────────────────────────
+// Dashed lines with distinct color for condition tree connections
+// (AND/OR/NOT gate → child condition nodes)
+
+/** Custom polyline edge model for condition tree connections */
+export class ConditionTreeEdgeModel extends PolylineEdgeModel {
+  getEdgeStyle() {
+    const style = super.getEdgeStyle()
+    style.stroke = 'var(--rf-status-processing, #7c3aed)'
+    style.strokeWidth = 1.5
+    style.strokeDasharray = '5 3'
+    return style
+  }
+
+  getTextStyle() {
+    const style = super.getTextStyle()
+    style.color = 'var(--rf-status-processing, #7c3aed)'
+    style.fontSize = 10
+    style.background = {
+      fill: 'var(--rf-bg-primary, #ffffff)',
+      stroke: 'var(--rf-status-processing, #7c3aed)',
+      strokeWidth: 1,
+      radius: 4,
+    }
+    return style
+  }
+}
+
+/** Custom edge view for condition tree connections */
+export class ConditionTreeEdgeView extends PolylineEdge {
+  getEdge() {
+    const { model } = this.props as any
+    const { points } = model
+
+    return h('g', {}, [
+      h('polyline', {
+        points,
+        stroke: 'var(--rf-status-processing, #7c3aed)',
+        strokeWidth: 1.5,
+        fill: 'none',
+        strokeDasharray: '5 3',
+      }),
+    ])
+  }
+
+  getAppendWidth() {
+    return h('g', {}, [])
+  }
+}
+
+/** Condition tree edge type identifier */
+export const CONDITION_TREE_EDGE_TYPE = 'condition-tree-edge'
+
 // Color getter for external use
 /** 根据关系类型获取对应颜色 */
 export function getRelationColor(relationType: string): string {

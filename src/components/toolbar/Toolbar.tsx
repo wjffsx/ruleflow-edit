@@ -1,6 +1,5 @@
 import { canvasStatus, selectedNodeId } from '../../store'
 import { t } from '../../i18n'
-import s from '../../styles/layout.module.css'
 import { FileGroup } from './FileGroup'
 import { EditGroup } from './EditGroup'
 import { RunGroup } from './RunGroup'
@@ -12,36 +11,51 @@ export function Toolbar() {
   const isRunning = canvasStatus.value === 'running'
 
   return (
-    <div class={s.toolbar} role="toolbar" aria-label="工具栏">
+    <div
+      class="flex items-center h-[var(--toolbar-height)] px-[var(--rf-space-2)] bg-[var(--rf-bg-primary)] border-b border-[var(--rf-border)] gap-0.5 z-[var(--rf-z-toolbar)] overflow-hidden"
+      style={{ gridArea: 'toolbar' }}
+      role="toolbar"
+      aria-label="工具栏"
+    >
       {/* File group */}
-      <span class={s.toolbarLabel}>{t('toolbar.file')}</span>
+      <span class="text-[var(--rf-text-2xs)] text-[var(--rf-text-tertiary)] px-[var(--rf-space-2)] whitespace-nowrap tracking-wide uppercase">
+        {t('toolbar.file')}
+      </span>
       <FileGroup />
 
-      <div class={s.toolbarDivider} />
+      <div class="w-px h-5 bg-[var(--rf-border)] mx-[var(--rf-space-2)] shrink-0" />
 
       {/* Edit group */}
-      <span class={s.toolbarLabel}>{t('toolbar.edit')}</span>
+      <span class="text-[var(--rf-text-2xs)] text-[var(--rf-text-tertiary)] px-[var(--rf-space-2)] whitespace-nowrap tracking-wide uppercase">
+        {t('toolbar.edit')}
+      </span>
       <EditGroup />
 
-      <div class={s.toolbarDivider} />
+      <div class="w-px h-5 bg-[var(--rf-border)] mx-[var(--rf-space-2)] shrink-0" />
 
       {/* Run group */}
-      <span class={s.toolbarLabel}>{t('toolbar.run')}</span>
+      <span class="text-[var(--rf-text-2xs)] text-[var(--rf-text-tertiary)] px-[var(--rf-space-2)] whitespace-nowrap tracking-wide uppercase">
+        {t('toolbar.run')}
+      </span>
       <RunGroup isRunning={isRunning} />
 
-      <div class={s.toolbarDivider} />
+      <div class="w-px h-5 bg-[var(--rf-border)] mx-[var(--rf-space-2)] shrink-0" />
 
       {/* View group */}
-      <span class={s.toolbarLabel}>{t('toolbar.view')}</span>
+      <span class="text-[var(--rf-text-2xs)] text-[var(--rf-text-tertiary)] px-[var(--rf-space-2)] whitespace-nowrap tracking-wide uppercase">
+        {t('toolbar.view')}
+      </span>
       <ViewGroup />
 
-      <div class={s.toolbarDivider} />
+      <div class="w-px h-5 bg-[var(--rf-border)] mx-[var(--rf-space-2)] shrink-0" />
 
       {/* Layout group */}
-      <span class={s.toolbarLabel}>{t('toolbar.layout')}</span>
+      <span class="text-[var(--rf-text-2xs)] text-[var(--rf-text-tertiary)] px-[var(--rf-space-2)] whitespace-nowrap tracking-wide uppercase">
+        {t('toolbar.layout')}
+      </span>
       <LayoutGroup />
 
-      <div class={s.spacer} />
+      <div class="flex-1" />
 
       {/* Context actions (visible when node selected) */}
       {selectedNodeId.value && <ContextActions />}

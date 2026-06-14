@@ -2,7 +2,6 @@ import { Play, Square, RotateCcw } from 'lucide-preact'
 import { lfInstance, startDebug, stopDebug } from '../../store'
 import { showInfo } from '../../services'
 import { t } from '../../i18n'
-import s from '../../styles/layout.module.css'
 import { ToolbarBtn } from './ToolbarBtn'
 
 /** Props for RunGroup component */
@@ -13,7 +12,7 @@ interface RunGroupProps {
 
 export function RunGroup({ isRunning }: RunGroupProps) {
   return (
-    <div class={s.toolbarGroup}>
+    <div class="flex items-center gap-px">
       <ToolbarBtn
         icon={Play}
         title={t('toolbar.start')}

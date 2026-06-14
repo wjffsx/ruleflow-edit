@@ -124,6 +124,17 @@ export const NODE_CATEGORIES: NodeCategory[] = [
       { type: 'msg_generator', name: '消息生成器', icon: 'AlarmClock' },
     ],
   },
+  {
+    id: 'logic-gates',
+    name: '逻辑门',
+    icon: 'GitBranch',
+    color: 'var(--rf-node-logic-gate)',
+    items: [
+      { type: 'logic_gate_and', name: 'AND 条件组', icon: 'GitMerge' },
+      { type: 'logic_gate_or', name: 'OR 条件组', icon: 'GitMerge' },
+      { type: 'logic_gate_not', name: 'NOT 条件组', icon: 'GitMerge' },
+    ],
+  },
 ]
 
 /** Built-in port nodes (always available, not from backend) */

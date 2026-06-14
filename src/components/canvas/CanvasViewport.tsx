@@ -9,7 +9,16 @@ import { ZoomControls } from './ZoomControls'
 import { EmptyState } from './EmptyState'
 import { useLogicFlow } from './useLogicFlow'
 import { useDragDrop } from './useDragDrop'
-import { setZoom, selectedNodeId, selectedNodeIds, setActivePanelTab } from '../../store'
+import {
+  setZoom,
+  selectedNodeId,
+  selectedNodeIds,
+  setActivePanelTab,
+  lfInstance,
+  debugNodeStates,
+  debugBreakpoints,
+  isDebugRunning,
+} from '../../store'
 import {
   hideRelationSelector,
   relationSelectorState,
@@ -23,7 +32,6 @@ import {
 } from '../../store/canvasActions'
 import { DEMO_DATA } from '../../data'
 import hotkeys from 'hotkeys-js'
-import s from '../../styles/layout.module.css'
 
 export function CanvasViewport() {
   const containerRef = useRef<HTMLElement | null>(null)
@@ -39,6 +47,68 @@ export function CanvasViewport() {
     })
     return () => hotkeys.unbind('ctrl+f')
   }, [])
+
+  // ── Sync debugNodeStates → LogicFlow node properties ──
+  // When debug state changes, update each node model's properties so
+  // BaseNode view can render debug highlights (stroke color, glow, etc.)
+  useEffect(() => {
+    const states = debugNodeStates.value
+    const bps = debugBreakpoints.value
+    const lf = lfRef.current
+    if (!lf) return
+
+    const bpSet = new Set(bps)
+
+    // Update debug state on nodes
+    for (const [nodeId, state] of Object.entries(states)) {
+      try {
+        const model = lf.getNodeModelById(nodeId)
+        if (model && model.properties?.debugState !== state) {
+          model.setProperties({ ...model.properties, debugState: state })
+        }
+      } catch (_e) {
+        if (import.meta.env.DEV)
+          console.warn('[RuleFlow] debug state sync failed for node:', nodeId)
+      }
+    }
+
+    // Sync breakpoint property
+    try {
+      const data = lf.getGraphData()
+      for (const node of data?.nodes || []) {
+        const hasBp = bpSet.has(node.id)
+        try {
+          const model = lf.getNodeModelById(node.id)
+          if (model && model.properties?.breakpoint !== hasBp) {
+            model.setProperties({ ...model.properties, breakpoint: hasBp })
+          }
+        } catch (_e) {
+          /* skip */
+        }
+      }
+    } catch (_e) {
+      /* skip */
+    }
+
+    // Clear debug state on nodes no longer in the states map
+    if (!isDebugRunning.value) {
+      try {
+        const data = lf.getGraphData()
+        for (const node of data?.nodes || []) {
+          try {
+            const model = lf.getNodeModelById(node.id)
+            if (model && model.properties?.debugState && model.properties.debugState !== 'idle') {
+              model.setProperties({ ...model.properties, debugState: 'idle' })
+            }
+          } catch (_e) {
+            /* skip */
+          }
+        }
+      } catch (_e) {
+        /* skip */
+      }
+    }
+  }, [debugNodeStates.value, debugBreakpoints.value, isDebugRunning.value])
 
   useLogicFlow({ containerRef, lfRef, setIsEmpty, setAllNodes, demoData: DEMO_DATA })
   const { handleDrop, handleDragOver } = useDragDrop({ lfRef, setIsEmpty })
@@ -116,7 +186,8 @@ export function CanvasViewport() {
 
   return (
     <div
-      class={s.canvasContainer}
+      class="relative overflow-hidden bg-[var(--rf-bg-secondary)]"
+      style={{ gridArea: 'canvas' }}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       role="application"
