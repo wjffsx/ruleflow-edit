@@ -75,7 +75,7 @@
     "@logicflow/core": "^2.2.3",
     "@logicflow/extension": "^2.2.3",
     "@preact/preset-vite": "^2.10.5",
-    "@preact/signals": "^2.9.1",
+    "@preact/signals": "^2.9.2",
     "@tailwindcss/vite": "^4.3.1",
     "@testing-library/preact": "^3.2.4",
     "@types/js-yaml": "^4.0.9",
