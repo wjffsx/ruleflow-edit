@@ -276,7 +276,7 @@ export function CanvasViewport({
     }
   }, [monitorState, mode])
 
-  useLogicFlow({
+  const { pluginsReady } = useLogicFlow({
     containerRef,
     lfRef,
     setIsEmpty,
@@ -371,6 +371,16 @@ export function CanvasViewport({
         ref={containerRef as unknown as Ref<HTMLDivElement>}
         style={{ width: '100%', height: '100%' }}
       />
+
+      {/* Loading state while extension plugins are loading (edit mode only) */}
+      {!pluginsReady && (
+        <div class="absolute inset-0 flex items-center justify-center bg-[var(--rf-bg-primary)] bg-opacity-80 z-50">
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-5 h-5 border-2 border-[var(--rf-brand-primary)] border-t-transparent rounded-full animate-spin" />
+            <span class="text-sm text-[var(--rf-text-secondary)]">加载编辑器...</span>
+          </div>
+        </div>
+      )}
 
       {/* Empty state */}
       {isEmpty && <EmptyState />}
