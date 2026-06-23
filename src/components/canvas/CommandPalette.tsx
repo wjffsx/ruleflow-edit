@@ -13,7 +13,8 @@ import {
   Keyboard,
   X,
 } from 'lucide-preact'
-import { searchService } from '../../services'
+// P0-opt: 直接从具体文件导入，避免 services/index.ts 被静态导入
+import { searchService } from '../../services/searchService'
 import type { CommandItem as SearchCommandItem } from '../../types/editor'
 
 /** 内部命令项定义（含图标组件） */

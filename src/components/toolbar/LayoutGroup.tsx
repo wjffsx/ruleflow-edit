@@ -1,6 +1,7 @@
 import { LayoutGrid, Grid3X3, Grid2X2 } from 'lucide-preact'
 import { lfInstance } from '../../store'
-import { showSuccess, showWarning } from '../../services'
+// P0-opt: 直接从具体文件导入，避免 services/index.ts 被静态导入
+import { showSuccess, showWarning } from '../../services/toastService'
 import { t } from '../../i18n'
 import { RuleFlowError, ERROR_CODES } from '../../utils'
 import { ToolbarBtn } from './ToolbarBtn'

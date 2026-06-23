@@ -10,7 +10,8 @@ import {
   isCategoryCollapsed,
 } from '../../store'
 import { NODE_CATEGORIES, PORT_NODES, NOTE_NODE, ICON_MAP } from '../../data'
-import { searchService } from '../../services'
+// P0-opt: 直接从具体文件导入，避免 services/index.ts 被静态导入
+import { searchService } from '../../services/searchService'
 import { t } from '../../i18n'
 
 /** Lucide 图标组件属性 */

@@ -23,13 +23,16 @@ export default defineConfig({
   },
   build: {
     lib: {
-      entry: 'src/index.ts',
+      entry: {
+        index: 'src/index.ts',
+        view: 'src/view.ts',
+      },
       name: 'RuleFlowEditor',
       formats: ['es', 'cjs'],
-      fileName: (format) => `ruleflow-edit.${format}.js`,
+      fileName: (format, entryName) => `${entryName}.${format}.js`,
     },
     rollupOptions: {
-      external: ['preact', 'preact/hooks', 'preact/compat', '@preact/signals', '@logicflow/core', '@logicflow/extension'],
+      external: ['preact', 'preact/hooks', 'preact/compat', '@preact/signals', '@logicflow/core', '@logicflow/extension', 'hotkeys-js'],
       output: {
         globals: {
           preact: 'preact',
@@ -38,6 +41,7 @@ export default defineConfig({
           '@preact/signals': 'preactSignals',
           '@logicflow/core': 'LogicFlow',
           '@logicflow/extension': 'LogicFlowExtension',
+          'hotkeys-js': 'hotkeys',
         },
       },
     },

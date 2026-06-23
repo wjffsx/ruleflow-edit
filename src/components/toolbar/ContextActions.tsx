@@ -1,6 +1,7 @@
 import { Copy, Trash2, ToggleLeft } from 'lucide-preact'
 import { lfInstance, selectedNodeId } from '../../store'
-import { showInfo } from '../../services'
+// P0-opt: 直接从具体文件导入，避免 services/index.ts 被静态导入
+import { showInfo } from '../../services/toastService'
 import { ToolbarBtn } from './ToolbarBtn'
 
 export function ContextActions() {

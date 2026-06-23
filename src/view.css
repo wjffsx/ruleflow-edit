@@ -1,0 +1,234 @@
+/* RuleFlow Editor — View-only Styles */
+/* Minimal CSS for read-only visualization mode */
+
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--rf-font-sans);
+  font-size: var(--rf-text-base);
+  line-height: 1.5;
+  color: var(--rf-text-primary);
+  background: var(--rf-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  height: 100%;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--rf-border-strong);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--rf-text-tertiary);
+}
+
+/* Selection */
+::selection {
+  background: var(--rf-brand-primary-light);
+  color: var(--rf-brand-primary);
+}
+
+/* =============================
+   LogicFlow Theme Overrides
+   ============================= */
+
+/* Canvas background */
+.lf-graph {
+  background: transparent !important;
+}
+
+.lf-canvas-overlay {
+  background: transparent !important;
+}
+
+.lf-element-text {
+  font-family: var(--rf-font-sans) !important;
+}
+
+/* Node default styles — match our design system */
+.lf-node rect {
+  rx: 8;
+  ry: 8;
+}
+
+/* Edge text background */
+.lf-edge-text {
+  font-size: 11px !important;
+}
+
+/* Grid dot color for dark mode */
+.lf-graph-dark .lf-grid-dot {
+  fill: var(--rf-border);
+}
+
+/* MiniMap styles */
+.lf-mini-map {
+  background: var(--rf-bg-secondary);
+  border-radius: var(--rf-radius-md);
+  box-shadow: var(--rf-shadow-sm);
+  overflow: hidden;
+  padding: 28px 8px 8px;
+  position: absolute;
+}
+
+.lf-mini-map .lf-graph {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.lf-mini-map-graph {
+  border-radius: var(--rf-radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.lf-minimap-viewport {
+  background-color: rgba(var(--rf-brand-primary-rgb), 0.2);
+  border-radius: 2px;
+  cursor: grab;
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+
+.lf-mini-map-header {
+  left: 0;
+  line-height: 18px;
+  margin: 4px 6px;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.lf-mini-map-close {
+  color: var(--rf-text-tertiary);
+  cursor: pointer;
+  height: 18px;
+  position: absolute;
+  right: 2px;
+  top: 6px;
+  width: 18px;
+}
+
+.lf-mini-map-close:hover {
+  color: var(--rf-text-primary);
+}
+
+.lf-mini-map-no-header {
+  padding-top: 8px;
+}
+
+.lf-mini-map-no-close-icon .lf-mini-map-close,
+.lf-mini-map-no-header .lf-mini-map-header {
+  display: none;
+}
+
+/* Node styles */
+.lf-node-content {
+  background: var(--rf-bg-primary);
+  border: 2px solid var(--rf-border);
+  border-radius: var(--rf-radius-md);
+  box-shadow: var(--rf-shadow-sm);
+  transition: border-color var(--rf-duration-fast);
+}
+
+.lf-node-content:hover {
+  border-color: var(--rf-brand-primary);
+}
+
+.lf-node-content.lf-node-selected {
+  border-color: var(--rf-brand-primary);
+  box-shadow: 0 0 0 2px rgba(var(--rf-brand-primary-rgb), 0.3);
+}
+
+/* Edge styles */
+.lf-edge path {
+  stroke: var(--rf-border-strong);
+  stroke-width: 2;
+  fill: none;
+}
+
+.lf-edge.lf-edge-selected path {
+  stroke: var(--rf-brand-primary);
+}
+
+/* Node text */
+.lf-node-text {
+  font-size: var(--rf-text-sm);
+  color: var(--rf-text-primary);
+  text-align: center;
+}
+
+/* Edge text */
+.lf-edge-text {
+  font-size: var(--rf-text-xs);
+  color: var(--rf-text-secondary);
+  background: var(--rf-bg-primary);
+  border-radius: var(--rf-radius-sm);
+  padding: 2px 4px;
+}
+
+/* View mode specific */
+.rf-view-only .lf-node-content {
+  cursor: default;
+}
+
+.rf-view-only .lf-edge path {
+  cursor: default;
+}
+
+/* Monitor mode overlay styles */
+.rf-monitor-node-status {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rf-status-running);
+}
+
+.rf-monitor-node-status.error {
+  background: var(--rf-status-error);
+}
+
+.rf-monitor-node-status.idle {
+  background: var(--rf-status-idle);
+}
+
+.rf-monitor-node-status.disabled {
+  background: var(--rf-status-disabled);
+}
+
+/* Loading state */
+.rf-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--rf-text-secondary);
+}

@@ -1,6 +1,7 @@
 import { Play, Square, RotateCcw } from 'lucide-preact'
 import { lfInstance, startDebug, stopDebug } from '../../store'
-import { showInfo } from '../../services'
+// P0-opt: 直接从具体文件导入，避免 services/index.ts 被静态导入
+import { showInfo } from '../../services/toastService'
 import { t } from '../../i18n'
 import { ToolbarBtn } from './ToolbarBtn'
 

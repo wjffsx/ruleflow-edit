@@ -1,40 +1,42 @@
-import { useEffect, useRef, useCallback } from 'preact/hooks'
-import type { CSSProperties, ComponentChild } from 'preact'
+import { useEffect, useRef, useCallback, useState } from 'preact/hooks'
+import type { CSSProperties, ComponentChild, FunctionalComponent } from 'preact'
 import type { GraphData } from '@logicflow/core'
-import { Navbar } from '../components/navbar/Navbar'
-import { Toolbar } from '../components/toolbar/Toolbar'
-import { Sidebar } from '../components/sidebar/Sidebar'
+// P0-B: CanvasViewport 是 view 模式必需，保持静态 import
 import { CanvasViewport } from '../components/canvas/CanvasViewport'
-import { RightPanel } from '../components/panel/RightPanel'
-import { StatusBar } from '../components/statusbar/StatusBar'
-import { CommandPalette } from '../components/canvas/CommandPalette'
-import {
-  sidebarCollapsed,
-  panelClosed,
-  focusMode,
-  commandPaletteVisible,
-  showCommandPalette,
-  hideCommandPalette,
-  toggleSidebar,
-  togglePanel,
-  toggleFocusMode,
-  startDebug,
-  stopDebug,
-  cycleDensityMode,
-  setZoom,
-  canvasZoom,
-  isDebugRunning,
-  isDebugPaused,
-  debugStep,
-  debugTotalSteps,
-  debugNodeStates,
-  debugMessages,
-} from '../store'
+// P0-B: 仅保留 view 模式必需的 store signals
+import { sidebarCollapsed, panelClosed, focusMode, canvasZoom, setZoom } from '../store'
 import { setTheme } from '../store/themeStore'
-import { showSuccess, showError, showWarning, showInfo } from '../services'
-import hotkeys from 'hotkeys-js'
+// P0-B: 移除 toast services 静态 import，改为 edit 模式动态加载
 import type { DebugNodeState, DebugMessage, ThemeMode } from '../types/editor'
 import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../types/ruleflowDocument'
+
+// ── P0-B: Edit mode UI components (dynamic import) ──────────────────────
+
+interface EditUIComponents {
+  Navbar: FunctionalComponent
+  Toolbar: FunctionalComponent
+  Sidebar: FunctionalComponent<{ readOnly?: boolean }>
+  RightPanel: FunctionalComponent<{ propertyRenderer?: unknown; readOnly?: boolean }>
+  StatusBar: FunctionalComponent
+  CommandPalette: FunctionalComponent<{
+    onClose: () => void
+    onExecuteCommand: (cmdId: string) => void
+  }>
+  hotkeys: typeof import('hotkeys-js').default
+  showSuccess: (msg: string) => void
+  showError: (msg: string) => void
+  showWarning: (msg: string) => void
+  showInfo: (msg: string) => void
+  showCommandPalette: () => void
+  hideCommandPalette: () => void
+  toggleSidebar: () => void
+  togglePanel: () => void
+  toggleFocusMode: () => void
+  startDebug: () => void
+  stopDebug: () => void
+  cycleDensityMode: () => void
+  commandPaletteVisible: { value: boolean }
+}
 
 // ── Props Types ──────────────────────────────────────────────────
 
@@ -218,29 +220,80 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
 
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // ── P0-B: Dynamic import edit UI components (only in edit mode) ──
+  const [editUI, setEditUI] = useState<EditUIComponents | null>(null)
+
+  useEffect(() => {
+    if (effectiveMode !== 'edit') {
+      setEditUI(null)
+      return
+    }
+
+    // Dynamic import all edit-mode dependencies
+    Promise.all([
+      import('../components/navbar/Navbar'),
+      import('../components/toolbar/Toolbar'),
+      import('../components/sidebar/Sidebar'),
+      import('../components/panel/RightPanel'),
+      import('../components/statusbar/StatusBar'),
+      import('../components/canvas/CommandPalette'),
+      import('hotkeys-js'),
+      import('../services'),
+      import('../store'),
+    ])
+      .then(([nav, tb, sb, rp, st, cp, hk, svc, store]) => {
+        setEditUI({
+          Navbar: nav.Navbar,
+          Toolbar: tb.Toolbar,
+          Sidebar: sb.Sidebar,
+          RightPanel: rp.RightPanel,
+          StatusBar: st.StatusBar,
+          CommandPalette: cp.CommandPalette,
+          hotkeys: hk.default,
+          showSuccess: svc.showSuccess,
+          showError: svc.showError,
+          showWarning: svc.showWarning,
+          showInfo: svc.showInfo,
+          showCommandPalette: store.showCommandPalette,
+          hideCommandPalette: store.hideCommandPalette,
+          toggleSidebar: store.toggleSidebar,
+          togglePanel: store.togglePanel,
+          toggleFocusMode: store.toggleFocusMode,
+          startDebug: store.startDebug,
+          stopDebug: store.stopDebug,
+          cycleDensityMode: store.cycleDensityMode,
+          commandPaletteVisible: store.commandPaletteVisible,
+        })
+      })
+      .catch((err) => {
+        console.error('[RuleFlowEditor] Failed to load edit UI:', err)
+      })
+  }, [effectiveMode])
+
   // ── Toast adapter wrapper ──
   const toast = useCallback(
     (type: 'success' | 'error' | 'warning' | 'info', message: string) => {
       if (toastAdapter) {
         toastAdapter[type](message)
-      } else {
+      } else if (editUI) {
+        // P0-B: Use dynamically loaded toast services
         switch (type) {
           case 'success':
-            showSuccess(message)
+            editUI.showSuccess(message)
             break
           case 'error':
-            showError(message)
+            editUI.showError(message)
             break
           case 'warning':
-            showWarning(message)
+            editUI.showWarning(message)
             break
           case 'info':
-            showInfo(message)
+            editUI.showInfo(message)
             break
         }
       }
     },
-    [toastAdapter],
+    [toastAdapter, editUI],
   )
 
   // Sync theme from props
@@ -251,26 +304,40 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
   }, [themeProp])
 
   // ── P0-4: Sync debugState prop → internal debug signals ──
+  // P0-B: debugState sync only needed in edit/monitor mode, moved to dynamic import
   useEffect(() => {
-    if (!props.debugState) return
-    const ds = props.debugState
-    debugNodeStates.value = ds.nodeStates
-    debugMessages.value = ds.messages.map((m) => ({
-      nodeId: m.nodeId,
-      type: m.type,
-      message: m.message,
-      time: (m as any).time ?? Date.now(),
-    }))
-    isDebugRunning.value = ds.isRunning
-    isDebugPaused.value = ds.isPaused
-    debugStep.value = ds.currentStep
-    debugTotalSteps.value = ds.totalSteps
-  }, [props.debugState])
+    if (!props.debugState || effectiveMode === 'view') return
+    // Import debug store dynamically
+    import('../store/debugStore').then(
+      ({
+        debugNodeStates,
+        debugMessages,
+        isDebugRunning,
+        isDebugPaused,
+        debugStep,
+        debugTotalSteps,
+      }) => {
+        const ds = props.debugState!
+        debugNodeStates.value = ds.nodeStates
+        debugMessages.value = ds.messages.map((m) => ({
+          nodeId: m.nodeId,
+          type: m.type,
+          message: m.message,
+          time: (m as any).time ?? Date.now(),
+        }))
+        isDebugRunning.value = ds.isRunning
+        isDebugPaused.value = ds.isPaused
+        debugStep.value = ds.currentStep
+        debugTotalSteps.value = ds.totalSteps
+      },
+    )
+  }, [props.debugState, effectiveMode])
 
   const collapsed = sidebarCollapsed.value
   const noPanel = panelClosed.value
   const focused = focusMode.value
-  const cmdPaletteVisible = commandPaletteVisible.value
+  // P0-B: commandPaletteVisible only available in edit mode
+  const cmdPaletteVisible = editUI?.commandPaletteVisible?.value ?? false
 
   // ── Resolve effective shortcuts ──
   const effectiveShortcuts = { ...DEFAULT_SHORTCUTS }
@@ -284,10 +351,14 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     }
   }
 
-  // ── Keyboard shortcuts (scoped to container) ──
+  // ── P0-B: Keyboard shortcuts (only in edit mode, after hotkeys loaded) ──
   useEffect(() => {
+    if (effectiveMode !== 'edit' || !editUI?.hotkeys) return
+
     const el = containerRef.current
     if (!el) return
+
+    const hotkeys = editUI.hotkeys
 
     // Set hotkeys scope to this editor instance
     hotkeys.setScope('ruleflow-editor')
@@ -300,7 +371,7 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
 
     bind('command-palette', (e) => {
       e.preventDefault()
-      showCommandPalette()
+      editUI.showCommandPalette()
     })
     bind('save', (e) => {
       e.preventDefault()
@@ -345,15 +416,15 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     })
     bind('toggle-sidebar', (e) => {
       e.preventDefault()
-      toggleSidebar()
+      editUI.toggleSidebar()
     })
     bind('toggle-panel', (e) => {
       e.preventDefault()
-      togglePanel()
+      editUI.togglePanel()
     })
     bind('cycle-density', (e) => {
       e.preventDefault()
-      cycleDensityMode()
+      editUI.cycleDensityMode()
     })
     bind('zoom-reset', (e) => {
       e.preventDefault()
@@ -370,26 +441,30 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     bind('debug-start', (e) => {
       e.preventDefault()
       if (onDebugStart) onDebugStart()
-      else startDebug()
+      else editUI.startDebug()
     })
     bind('debug-stop', (e) => {
       e.preventDefault()
-      stopDebug()
+      editUI.stopDebug()
     })
     bind('focus-mode', (e) => {
       e.preventDefault()
-      toggleFocusMode()
+      editUI.toggleFocusMode()
     })
 
     return () => {
       hotkeys.deleteScope('ruleflow-editor')
     }
-  }, [hotkeyOverrides, onDebugStart, onSave, toast])
+  }, [effectiveMode, editUI, hotkeyOverrides, onDebugStart, onSave, toast, effectiveShortcuts])
 
-  // Focus/blur handling — activate/deactivate hotkeys scope
+  // P0-B: Focus/blur handling (only in edit mode)
   useEffect(() => {
+    if (effectiveMode !== 'edit' || !editUI?.hotkeys) return
+
     const el = containerRef.current
     if (!el) return
+
+    const hotkeys = editUI.hotkeys
 
     const onFocus = () => {
       hotkeys.setScope('ruleflow-editor')
@@ -405,7 +480,7 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
       el.removeEventListener('focusin', onFocus)
       el.removeEventListener('focusout', onBlur)
     }
-  }, [])
+  }, [effectiveMode, editUI])
 
   // ── Compute grid-template-columns ──
   let gridCols: string
@@ -425,35 +500,49 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
 
   // ── P0-8: Dynamic grid-template-rows/areas based on showNavbar ──
   const gridRows = [
-    showNavbar ? 'var(--navbar-height)' : '',
-    showToolbar ? 'var(--toolbar-height)' : '',
+    showNavbar && effectiveMode === 'edit' ? 'var(--navbar-height)' : '',
+    showToolbar && effectiveMode === 'edit' ? 'var(--toolbar-height)' : '',
     '1fr',
-    showStatusBar ? 'var(--statusbar-height)' : '',
+    showStatusBar && effectiveMode === 'edit' ? 'var(--statusbar-height)' : '',
   ]
     .filter(Boolean)
     .join(' ')
 
   const areas = [
-    showNavbar ? '"navbar navbar navbar"' : '',
-    showToolbar ? '"toolbar toolbar toolbar"' : '',
+    showNavbar && effectiveMode === 'edit' ? '"navbar navbar navbar"' : '',
+    showToolbar && effectiveMode === 'edit' ? '"toolbar toolbar toolbar"' : '',
     '"sidebar canvas panel"',
-    showStatusBar ? '"status status status"' : '',
+    showStatusBar && effectiveMode === 'edit' ? '"status status status"' : '',
   ]
     .filter(Boolean)
     .join(' ')
 
   const handleExecuteCommand = (cmdId: string) => {
+    if (!editUI) return
     switch (cmdId) {
       case 'run':
         if (onDebugStart) onDebugStart()
-        else startDebug()
+        else editUI.startDebug()
         break
       case 'stop':
-        stopDebug()
+        editUI.stopDebug()
         break
       default:
         console.log('Command:', cmdId)
     }
+  }
+
+  // ── P0-B: Loading state for edit mode ──
+  if (effectiveMode === 'edit' && !editUI) {
+    return (
+      <div
+        ref={containerRef}
+        class="h-full flex items-center justify-center bg-[var(--rf-bg-primary)]"
+        style={style}
+      >
+        <div class="text-[var(--rf-text-secondary)]">加载编辑器...</div>
+      </div>
+    )
   }
 
   return (
@@ -476,9 +565,10 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
       }}
       tabIndex={-1}
     >
-      {showNavbar && <Navbar />}
-      {effectiveShowToolbar && <Toolbar />}
-      {effectiveShowSidebar && <Sidebar readOnly={effectiveReadOnly} />}
+      {/* P0-B: Edit UI components rendered only when loaded */}
+      {editUI && showNavbar && <editUI.Navbar />}
+      {editUI && effectiveShowToolbar && <editUI.Toolbar />}
+      {editUI && effectiveShowSidebar && <editUI.Sidebar readOnly={effectiveReadOnly} />}
       <CanvasViewport
         initialData={props.initialData}
         readOnly={effectiveReadOnly}
@@ -491,14 +581,17 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
         onEdgeAdd={onEdgeAdd}
         onEdgeDelete={onEdgeDelete}
       />
-      {effectiveShowDebugPanel && !focused && (
-        <RightPanel propertyRenderer={props.propertyRenderer} readOnly={effectiveReadOnly} />
+      {editUI && effectiveShowDebugPanel && !focused && (
+        <editUI.RightPanel propertyRenderer={props.propertyRenderer} readOnly={effectiveReadOnly} />
       )}
-      {showStatusBar && <StatusBar />}
+      {editUI && showStatusBar && <editUI.StatusBar />}
 
-      {/* Command palette (Ctrl+K) */}
-      {cmdPaletteVisible && (
-        <CommandPalette onClose={hideCommandPalette} onExecuteCommand={handleExecuteCommand} />
+      {/* Command palette (Ctrl+K) - only in edit mode */}
+      {editUI && cmdPaletteVisible && (
+        <editUI.CommandPalette
+          onClose={editUI.hideCommandPalette}
+          onExecuteCommand={handleExecuteCommand}
+        />
       )}
     </div>
   )

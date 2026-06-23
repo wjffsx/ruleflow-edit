@@ -2,7 +2,8 @@ import { h } from 'preact'
 import { useState, useEffect, useRef, useMemo } from 'preact/hooks'
 import type { RefObject } from 'preact'
 import { Search, X, ChevronUp, ChevronDown } from 'lucide-preact'
-import { searchService } from '../../services'
+// P0-opt: 直接从具体文件导入，避免 services/index.ts 被静态导入
+import { searchService } from '../../services/searchService'
 
 /** Node data for search */
 interface SearchableNode {
@@ -37,7 +38,7 @@ export function NodeSearch({ nodes, onClose, onLocateNode }: NodeSearchProps) {
 
   const results = useMemo(() => {
     if (!query.trim()) return []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     return searchService.searchNodes(query) as SearchableNode[]
   }, [query, nodes])
 

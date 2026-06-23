@@ -1,6 +1,7 @@
 import { h } from 'preact'
 import { Settings, ToggleLeft, ToggleRight, Bug, X, ChevronRight, Activity } from 'lucide-preact'
-import { calculateSimplePosition } from '../../services'
+// P0-opt: 直接从具体文件导入，避免 services/index.ts 被静态导入
+import { calculateSimplePosition } from '../../services/floatingPosition'
 import { getNodeStyle } from '../../data'
 import type { MonitorNodeState } from '../../layout/RuleFlowEditor'
 

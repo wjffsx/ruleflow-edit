@@ -1,6 +1,7 @@
 import { h } from 'preact'
 import { Copy, Trash2, ToggleLeft, Group } from 'lucide-preact'
-import { calculateSimplePosition } from '../../services'
+// P0-opt: 直接从具体文件导入，避免 services/index.ts 被静态导入
+import { calculateSimplePosition } from '../../services/floatingPosition'
 
 /** 批量操作工具栏属性 */
 interface BatchActionToolbarProps {

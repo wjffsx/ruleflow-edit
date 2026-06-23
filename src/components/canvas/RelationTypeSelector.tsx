@@ -3,7 +3,8 @@ import { useEffect, useRef } from 'preact/hooks'
 import type { RefObject } from 'preact'
 import { X } from 'lucide-preact'
 import { RELATION_TYPES } from '../../data'
-import { calculateSimplePosition } from '../../services'
+// P0-opt: 直接从具体文件导入，避免 services/index.ts 被静态导入
+import { calculateSimplePosition } from '../../services/floatingPosition'
 
 /** 关系类型选择器属性 */
 interface RelationTypeSelectorProps {

@@ -25,8 +25,8 @@
     "virtual-power-plant",
     "drag-and-drop"
   ],
-  "main": "dist/ruleflow-edit.cjs.js",
-  "module": "dist/ruleflow-edit.es.js",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
   "types": "dist/src/index.d.ts",
   "files": [
     "dist"
@@ -34,15 +34,21 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "import": "./dist/ruleflow-edit.es.js",
-      "require": "./dist/ruleflow-edit.cjs.js",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js",
       "types": "./dist/src/index.d.ts"
     },
-    "./dist/ruleflow-edit.css": "./dist/ruleflow-edit.css"
+    "./view": {
+      "import": "./dist/view.es.js",
+      "require": "./dist/view.cjs.js",
+      "types": "./dist/src/view.d.ts"
+    },
+    "./dist/ruleflow-edit.css": "./dist/ruleflow-edit.css",
+    "./dist/view.css": "./dist/view.css"
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/build-view-css.js",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
