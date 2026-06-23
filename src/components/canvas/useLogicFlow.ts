@@ -128,7 +128,6 @@ export function useLogicFlow({
       ;(window as unknown as Record<string, unknown>).__lf = null
       ;(window as unknown as Record<string, unknown>).__lfRef = null
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return { lfRef }
