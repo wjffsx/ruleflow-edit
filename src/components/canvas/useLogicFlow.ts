@@ -1,5 +1,5 @@
 import type { RefObject } from 'preact'
-import { useEffect } from 'preact/hooks'
+import { useEffect, useRef } from 'preact/hooks'
 import { LogicFlow, type GraphData } from '@logicflow/core'
 import { MiniMap, Snapshot, SelectionSelect } from '@logicflow/extension'
 import '@logicflow/core/dist/index.css'
@@ -18,21 +18,14 @@ import { setupLogicFlowEvents } from './useLogicFlowEvents'
 
 /** Parameters for useLogicFlow hook */
 interface UseLogicFlowParams {
-  /** Ref to the container DOM element */
   containerRef: RefObject<HTMLElement | null>
-  /** Mutable ref holding the LogicFlow instance */
   lfRef: { current: LogicFlow | null }
-  /** Callback to set whether the canvas is empty */
   setIsEmpty: (v: boolean) => void
-  /** Callback to set all node data */
   setAllNodes: (v: import('@logicflow/core').NodeData[]) => void
-  /** Initial data to render (replaces demoData) */
   initialData?: GraphData
-  /** Read-only mode — disables editing in LogicFlow */
   readOnly?: boolean
 }
 
-/** Return type of useLogicFlow hook */
 interface UseLogicFlowReturn {
   lfRef: { current: LogicFlow | null }
 }
@@ -45,7 +38,14 @@ export function useLogicFlow({
   initialData,
   readOnly = false,
 }: UseLogicFlowParams): UseLogicFlowReturn {
+  // P0-fix: mounted guard — prevents forceUpdate on unmounted component
+  const mountedRef = useRef(true)
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const addTimer = (id: ReturnType<typeof setTimeout>) => { timersRef.current.push(id) }
+  const clearAllTimers = () => { timersRef.current.forEach(clearTimeout); timersRef.current = [] }
+
   useEffect(() => {
+    mountedRef.current = true
     if (!containerRef.current || lfRef.current) return
 
     const lf = new LogicFlow({
@@ -63,17 +63,14 @@ export function useLogicFlow({
       snapline: !readOnly,
       history: !readOnly,
       partial: true,
-      // P0-5: Read-only mode — disable editing interactions
       isSilentMode: false,
       stopScrollGraph: readOnly,
       stopZoomGraph: readOnly,
       stopMoveGraph: readOnly ? true : false,
-      // 禁用内置的调整大小和旋转工具，避免 ToolOverlay 内存泄漏警告
       allowRotation: false,
       allowResize: false,
     })
 
-    // Register custom types
     Object.entries(CUSTOM_NODE_TYPES).forEach(([type, { model, view }]) => {
       lf.register(type, () => ({ model, view }))
     })
@@ -86,90 +83,63 @@ export function useLogicFlow({
       view: ConditionTreeEdgeView,
     }))
 
-    // P0-3: Use initialData if provided, otherwise use empty
     const dataToRender = initialData || { nodes: [], edges: [] }
     lf.render(dataToRender)
-    setTimeout(() => lf.fitView(60), 100)
+    // P0-fix: guard fitView timer with mounted check
+    const fitViewId = setTimeout(() => {
+      if (!mountedRef.current) return
+      lf.fitView(60)
+    }, 100)
+    addTimer(fitViewId)
     lfRef.current = lf
     setLfInstance(lf)
 
-    // ── Inject SVG filter defs for debug glow effects ──
-    injectSvgFilterDefs(containerRef.current)
+    // P0-fix: guard injectSvgFilterDefs with mounted check
+    const injectId = setTimeout(() => injectSvgFilterDefs(containerRef.current, mountedRef), 100)
+    addTimer(injectId)
 
-    // P0-5: In read-only mode, disable node drag, edge creation, and deletion
     if (readOnly) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const graphModel = lf.graphModel as { nodes?: any[] }
-        // Disable node dragging
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        graphModel.nodes?.forEach((node: any) => {
-          node.draggable = false
-        })
-      } catch (_e) {
-        // ignore
-      }
+        graphModel.nodes?.forEach((node: any) => { node.draggable = false })
+      } catch (_e) { /* ignore */ }
     }
 
-    // Expose for debugging (dev only)
-    if (import.meta.env.DEV) {
-      ;(window as unknown as Record<string, unknown>).__lf = lf
-    }
+    // P0-fix: always expose globally — host page uses this to destroy LF before Preact unmount
+    ;(window as unknown as Record<string, unknown>).__lf = lf
+    // P0-fix: expose lfRef so host page can nullify it before Preact unmount
+    ;(window as unknown as Record<string, unknown>).__lfRef = lfRef
 
-    // ── Event handlers ──
     const cleanup = setupLogicFlowEvents(lf, setIsEmpty, setAllNodes)
 
     return () => {
+      // P0-fix: set mounted false IMMEDIATELY
+      mountedRef.current = false
+      clearAllTimers()
       cleanup()
-      if (lfRef.current) {
-        try {
-          const lf = lfRef.current
-          // 取消选中所有节点，触发 ToolOverlay 清理
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ;(lf as any).clearSelectElements?.()
-          // 清理 ToolOverlay 状态，避免内存泄漏警告
-          const graphModel = lf.graphModel
-          if (graphModel) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ((graphModel as any).toolOverlay) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ;(graphModel as any).toolOverlay = null
-            }
-            // 清理可能存在的 resize 和 rotation 控制点
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ((graphModel as any).resizeInfo) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ;(graphModel as any).resizeInfo = null
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ((graphModel as any).rotateInfo) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ;(graphModel as any).rotateInfo = null
-            }
-          }
-          lf.destroy()
-        } catch (e) {
-          if (import.meta.env.DEV) console.warn('[RuleFlow] lf destroy failed:', e)
-        }
-        lfRef.current = null
-        setLfInstance(null as unknown as LogicFlow)
-      }
+      // P0-fix: Do NOT call lf.destroy() in cleanup — it triggers signal reactions
+      // (ObservableMap.clear → endBatch → reactionScheduler → forceUpdate) that fire
+      // via microtask AFTER the component is already unmounted by Preact.
+      // The LF instance is disposed via external destroy (window.__lf.destroy in handleBack)
+      // when the user navigates away. For internal toggles (visual↔yaml), the orphaned
+      // LF is GC'd when the container DOM is removed by Preact.
+      lfRef.current = null
+      setLfInstance(null as unknown as LogicFlow)
+      ;(window as unknown as Record<string, unknown>).__lf = null
+      ;(window as unknown as Record<string, unknown>).__lfRef = null
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return { lfRef }
 }
 
-/**
- * Inject SVG <defs> with filter definitions for debug glow effects
- * and default drop shadow into the LogicFlow SVG canvas.
- */
-function injectSvgFilterDefs(container: HTMLElement | null): void {
-  if (!container) return
+function injectSvgFilterDefs(container: HTMLElement | null, mountedRef: { current: boolean }): void {
+  if (!container || !mountedRef.current) return
   const svgEl = container.querySelector('svg.lf-graph')
   if (!svgEl) {
-    // Retry after a short delay if SVG not yet rendered
-    setTimeout(() => {
+    const retryId = setTimeout(() => {
+      if (!mountedRef.current) return
       const retrySvg = container.querySelector('svg.lf-graph')
       if (retrySvg) appendFilterDefs(retrySvg as SVGElement)
     }, 200)
