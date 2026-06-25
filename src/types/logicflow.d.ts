@@ -116,6 +116,7 @@ declare module '@logicflow/core' {
     undo(): void
     redo(): void
     deleteNode(id: string): void
+    deleteEdge(edgeId: string): boolean
     updateAttributes(id: string, attrs: Record<string, unknown>): void
     getPointByClient(x: number, y: number): { x: number; y: number }
     addElements(data: Record<string, unknown>): Record<string, unknown>

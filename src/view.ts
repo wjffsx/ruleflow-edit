@@ -45,14 +45,6 @@ export type {
   EvaluationMode,
 } from './types/ruleflowDocument'
 
-export {
-  fromYAML,
-  toYAML,
-  createEmptyDocument,
-  resetIdCounter,
-  fromDefinitionJSON,
-} from './types/ruleflowDocument'
-
 // ── Core Components (view mode only) ───────────────────────────────
 export { RuleFlowEditor } from './layout/RuleFlowEditor'
 export type {
@@ -136,3 +128,35 @@ export {
 } from './utils/validation'
 export { RuleFlowError, ERROR_CODES } from './utils/errors'
 export type { ErrorCode } from './utils/errors'
+
+// ── v0.4.0 语义/视图分离 API（外部集成必用）──────────────────────
+export type {
+  SemanticDocument,
+  SemanticNode,
+  SemanticEdge,
+  ViewDocument,
+  ViewNode,
+  ViewEdge,
+  SplitResult,
+  ValidationError,
+  ValidationResult,
+} from './utils/ruleflowSerializer'
+
+export {
+  buildSemanticDocument,
+  buildViewDocument,
+  splitToSemanticAndView,
+  mergeFromSemanticAndView,
+  validateSemanticDocument,
+  isValidRuleId,
+  generateRuleId,
+  saveViewToLocalStorage,
+  loadViewFromLocalStorage,
+  clearViewFromLocalStorage,
+  downloadAsJsonFile,
+  downloadAsJsonPair,
+  readJsonFile,
+} from './utils/ruleflowSerializer'
+
+// ── v0.4.0 旧版兼容 API（迁移期）────────────────────────────
+export { buildRuleflowDocument, applyDocumentToLf } from './utils/ruleflowSerializer'

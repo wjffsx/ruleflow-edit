@@ -7,13 +7,6 @@
 
 export { searchService } from './searchService'
 
-export {
-  calculateSimplePosition,
-  computePosition,
-  flip,
-  shift,
-  offset,
-  autoUpdate,
-} from './floatingPosition'
+export { calculateSimplePosition } from './floatingPosition'
 
 export { showSuccess, showError, showWarning, showInfo, toast } from './toastService'

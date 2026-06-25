@@ -3,7 +3,19 @@ import { lfInstance, chainName, nodeCount, edgeCount } from '../../store'
 // P0-opt: 直接从具体文件导入，避免 services/index.ts 被静态导入
 import { showSuccess, showWarning } from '../../services/toastService'
 import { t } from '../../i18n'
-import { isValidGraphData, safeJsonParse, RuleFlowError, ERROR_CODES } from '../../utils'
+import {
+  isValidGraphData,
+  safeJsonParse,
+  RuleFlowError,
+  ERROR_CODES,
+  buildRuleflowDocument,
+  buildSemanticDocument,
+  buildViewDocument,
+  downloadAsJsonFile,
+  readJsonFile,
+  saveViewToLocalStorage,
+  validateSemanticDocument,
+} from '../../utils'
 import { ToolbarBtn } from './ToolbarBtn'
 
 export function FileGroup() {
@@ -62,32 +74,35 @@ export function FileGroup() {
         title={t('toolbar.save')}
         onClick={() => {
           const lf = lfInstance.value
-          if (lf) {
-            try {
-              const data = lf.getGraphData()
-              const saveData = {
-                ...data,
-                chainName: chainName.value,
-                savedAt: new Date().toISOString(),
+          if (!lf) return
+          try {
+            const name = chainName.value || '未命名规则链'
+            // 阶段 2: 拆分语义/视图，下载双文件
+            const semantic = buildSemanticDocument(lf, name)
+            const view = buildViewDocument(lf, name)
+
+            // 阶段 4.2: 语义文档强校验（开发环境）
+            if (import.meta.env.DEV) {
+              const v = validateSemanticDocument(semantic)
+              if (!v.valid) {
+                console.warn('[RuleFlow] 语义校验失败:', v.errors)
               }
-              const blob = new Blob([JSON.stringify(saveData, null, 2)], {
-                type: 'application/json',
-              })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url
-              a.download = `${chainName.value}.json`
-              a.click()
-              URL.revokeObjectURL(url)
-              showSuccess('规则链已保存')
-            } catch (_err) {
-              const error = new RuleFlowError('文件保存失败', ERROR_CODES.FILE_OPERATION, {
-                cause: _err,
-              })
-              showWarning('保存失败')
-              if (import.meta.env.DEV) console.warn(error)
-              throw error
             }
+
+            // 阶段 4.1: 视图态本地化（自动恢复）
+            saveViewToLocalStorage(view, name)
+
+            // 旧版兼容：仍输出单文件（迁移期）
+            const doc = buildRuleflowDocument(lf, name)
+            downloadAsJsonFile(doc)
+            showSuccess('规则链已保存（语义+视图）')
+          } catch (err) {
+            const error = new RuleFlowError('文件保存失败', ERROR_CODES.FILE_OPERATION, {
+              cause: err,
+            })
+            showWarning('保存失败')
+            if (import.meta.env.DEV) console.warn(error)
+            throw error
           }
         }}
       />

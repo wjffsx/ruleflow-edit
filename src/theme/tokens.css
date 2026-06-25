@@ -211,6 +211,25 @@
   --density-scale: 1;
 }
 
+/* ── P3-6.5: Reduced motion support ──────────────────────────── */
+/* Honors user's OS-level "reduce motion" preference */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --rf-duration-fast: 0ms;
+    --rf-duration-normal: 0ms;
+    --rf-duration-slow: 0ms;
+  }
+}
+
+/* ── P3-6.5: Low-performance device override ─────────────────── */
+/* Set <html data-low-perf="true"> to disable all animations on
+   embedded/low-spec devices for smoother interaction. */
+:root[data-low-perf='true'] {
+  --rf-duration-fast: 0ms;
+  --rf-duration-normal: 0ms;
+  --rf-duration-slow: 0ms;
+}
+
 /* ── VPPTU CSS Variable Mapping ──────────────────────────────── */
 /* When embedded in VPPTU Editor, --color-* variables are provided */
 /* by the host. These mappings allow ruleflow-edit to use VPPTU's */

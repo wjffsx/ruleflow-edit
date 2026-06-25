@@ -38,7 +38,7 @@ export function RelationTypeSelector({
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [onClose])
 
   // Use floating position service
   const position = calculateSimplePosition(x, y, 200, 250, 8)

@@ -1,41 +1,60 @@
-import { useEffect, useRef, useCallback, useState } from 'preact/hooks'
+import { useEffect, useRef, useCallback, useState, useMemo } from 'preact/hooks'
 import type { CSSProperties, ComponentChild, FunctionalComponent } from 'preact'
 import type { GraphData } from '@logicflow/core'
 // P0-B: CanvasViewport 是 view 模式必需，保持静态 import
 import { CanvasViewport } from '../components/canvas/CanvasViewport'
+import { buildRuleflowDocument, buildSemanticDocument } from '../utils'
 // P0-B: 仅保留 view 模式必需的 store signals
-import { sidebarCollapsed, panelClosed, focusMode, canvasZoom, setZoom } from '../store'
+// P1-4.3: Move all store exports to static import (module already loaded via CanvasViewport)
+import {
+  sidebarCollapsed,
+  panelClosed,
+  focusMode,
+  canvasZoom,
+  setZoom,
+  showCommandPalette,
+  hideCommandPalette,
+  toggleSidebar,
+  togglePanel,
+  toggleFocusMode,
+  startDebug,
+  stopDebug,
+  cycleDensityMode,
+  commandPaletteVisible,
+  // P1-4.3: debugStore signals already available via static store import
+  debugNodeStates,
+  debugMessages,
+  isDebugRunning,
+  isDebugPaused,
+  debugStep,
+  debugTotalSteps,
+} from '../store'
 import { setTheme } from '../store/themeStore'
+// P1-4.3: hotkeys-js is already in the main bundle via CanvasViewport static import
+import hotkeys from 'hotkeys-js'
 // P0-B: 移除 toast services 静态 import，改为 edit 模式动态加载
 import type { DebugNodeState, DebugMessage, ThemeMode } from '../types/editor'
 import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../types/ruleflowDocument'
 
-// ── P0-B: Edit mode UI components (dynamic import) ──────────────────────
+// ── P1-4.3: Edit mode UI components (single dynamic import) ───────────
 
 interface EditUIComponents {
   Navbar: FunctionalComponent
   Toolbar: FunctionalComponent
   Sidebar: FunctionalComponent<{ readOnly?: boolean }>
-  RightPanel: FunctionalComponent<{ propertyRenderer?: unknown; readOnly?: boolean }>
+  RightPanel: FunctionalComponent<{
+    propertyRenderer?: (node: unknown, onChange: (updated: unknown) => void) => ComponentChild
+    readOnly?: boolean
+  }>
   StatusBar: FunctionalComponent
   CommandPalette: FunctionalComponent<{
     onClose: () => void
     onExecuteCommand: (cmdId: string) => void
   }>
-  hotkeys: typeof import('hotkeys-js').default
   showSuccess: (msg: string) => void
   showError: (msg: string) => void
   showWarning: (msg: string) => void
   showInfo: (msg: string) => void
-  showCommandPalette: () => void
-  hideCommandPalette: () => void
-  toggleSidebar: () => void
-  togglePanel: () => void
-  toggleFocusMode: () => void
-  startDebug: () => void
-  stopDebug: () => void
-  cycleDensityMode: () => void
-  commandPaletteVisible: { value: boolean }
 }
 
 // ── Props Types ──────────────────────────────────────────────────
@@ -220,7 +239,7 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
 
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // ── P0-B: Dynamic import edit UI components (only in edit mode) ──
+  // ── P1-4.3: Dynamic import edit UI components (single chunk) ──
   const [editUI, setEditUI] = useState<EditUIComponents | null>(null)
 
   useEffect(() => {
@@ -229,40 +248,20 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
       return
     }
 
-    // Dynamic import all edit-mode dependencies
-    Promise.all([
-      import('../components/navbar/Navbar'),
-      import('../components/toolbar/Toolbar'),
-      import('../components/sidebar/Sidebar'),
-      import('../components/panel/RightPanel'),
-      import('../components/statusbar/StatusBar'),
-      import('../components/canvas/CommandPalette'),
-      import('hotkeys-js'),
-      import('../services'),
-      import('../store'),
-    ])
-      .then(([nav, tb, sb, rp, st, cp, hk, svc, store]) => {
+    // Single dynamic import — all 6 UI components + services merged into one chunk
+    import('../components/editUI')
+      .then((mod) => {
         setEditUI({
-          Navbar: nav.Navbar,
-          Toolbar: tb.Toolbar,
-          Sidebar: sb.Sidebar,
-          RightPanel: rp.RightPanel,
-          StatusBar: st.StatusBar,
-          CommandPalette: cp.CommandPalette,
-          hotkeys: hk.default,
-          showSuccess: svc.showSuccess,
-          showError: svc.showError,
-          showWarning: svc.showWarning,
-          showInfo: svc.showInfo,
-          showCommandPalette: store.showCommandPalette,
-          hideCommandPalette: store.hideCommandPalette,
-          toggleSidebar: store.toggleSidebar,
-          togglePanel: store.togglePanel,
-          toggleFocusMode: store.toggleFocusMode,
-          startDebug: store.startDebug,
-          stopDebug: store.stopDebug,
-          cycleDensityMode: store.cycleDensityMode,
-          commandPaletteVisible: store.commandPaletteVisible,
+          Navbar: mod.Navbar,
+          Toolbar: mod.Toolbar,
+          Sidebar: mod.Sidebar,
+          RightPanel: mod.RightPanel,
+          StatusBar: mod.StatusBar,
+          CommandPalette: mod.CommandPalette,
+          showSuccess: mod.showSuccess,
+          showError: mod.showError,
+          showWarning: mod.showWarning,
+          showInfo: mod.showInfo,
         })
       })
       .catch((err) => {
@@ -304,61 +303,50 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
   }, [themeProp])
 
   // ── P0-4: Sync debugState prop → internal debug signals ──
-  // P0-B: debugState sync only needed in edit/monitor mode, moved to dynamic import
+  // P1-4.3: debugStore signals are now static imports, no dynamic import needed
   useEffect(() => {
     if (!props.debugState || effectiveMode === 'view') return
-    // Import debug store dynamically
-    import('../store/debugStore').then(
-      ({
-        debugNodeStates,
-        debugMessages,
-        isDebugRunning,
-        isDebugPaused,
-        debugStep,
-        debugTotalSteps,
-      }) => {
-        const ds = props.debugState!
-        debugNodeStates.value = ds.nodeStates
-        debugMessages.value = ds.messages.map((m) => ({
-          nodeId: m.nodeId,
-          type: m.type,
-          message: m.message,
-          time: (m as any).time ?? Date.now(),
-        }))
-        isDebugRunning.value = ds.isRunning
-        isDebugPaused.value = ds.isPaused
-        debugStep.value = ds.currentStep
-        debugTotalSteps.value = ds.totalSteps
-      },
-    )
+    const ds = props.debugState
+    debugNodeStates.value = ds.nodeStates
+    debugMessages.value = ds.messages.map((m) => ({
+      nodeId: m.nodeId,
+      type: m.type,
+      message: m.message,
+      time: (m as any).time ?? Date.now(),
+    }))
+    isDebugRunning.value = ds.isRunning
+    isDebugPaused.value = ds.isPaused
+    debugStep.value = ds.currentStep
+    debugTotalSteps.value = ds.totalSteps
   }, [props.debugState, effectiveMode])
 
   const collapsed = sidebarCollapsed.value
   const noPanel = panelClosed.value
   const focused = focusMode.value
-  // P0-B: commandPaletteVisible only available in edit mode
-  const cmdPaletteVisible = editUI?.commandPaletteVisible?.value ?? false
+  // P1-4.3: commandPaletteVisible is now a static import
+  const cmdPaletteVisible = commandPaletteVisible.value
 
-  // ── Resolve effective shortcuts ──
-  const effectiveShortcuts = { ...DEFAULT_SHORTCUTS }
-  if (hotkeyOverrides) {
-    for (const [key, value] of Object.entries(hotkeyOverrides)) {
-      if (value === false) {
-        delete effectiveShortcuts[key]
-      } else {
-        effectiveShortcuts[key] = value
+  // ── Resolve effective shortcuts (stable reference via useMemo) ──
+  const effectiveShortcuts = useMemo(() => {
+    const result = { ...DEFAULT_SHORTCUTS }
+    if (hotkeyOverrides) {
+      for (const [key, value] of Object.entries(hotkeyOverrides)) {
+        if (value === false) {
+          delete result[key]
+        } else {
+          result[key] = value
+        }
       }
     }
-  }
+    return result
+  }, [hotkeyOverrides])
 
-  // ── P0-B: Keyboard shortcuts (only in edit mode, after hotkeys loaded) ──
+  // ── P1-4.3: Keyboard shortcuts (edit mode, hotkeys is static import) ──
   useEffect(() => {
-    if (effectiveMode !== 'edit' || !editUI?.hotkeys) return
+    if (effectiveMode !== 'edit') return
 
     const el = containerRef.current
     if (!el) return
-
-    const hotkeys = editUI.hotkeys
 
     // Set hotkeys scope to this editor instance
     hotkeys.setScope('ruleflow-editor')
@@ -371,7 +359,7 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
 
     bind('command-palette', (e) => {
       e.preventDefault()
-      editUI.showCommandPalette()
+      showCommandPalette()
     })
     bind('save', (e) => {
       e.preventDefault()
@@ -382,30 +370,9 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
             | import('@logicflow/core').LogicFlow
             | undefined
           if (lf) {
-            const graphData = lf.getGraphData() as any
-            const doc: RuleFlowDocument = {
-              chainId: '',
-              chainName: '',
-              enabled: true,
-              root: false,
-              evaluationMode: 'all',
-              nodes: (graphData.nodes || []).map((n: any) => ({
-                id: n.id,
-                type: n.type,
-                x: n.x ?? 0,
-                y: n.y ?? 0,
-                text: typeof n.text === 'object' ? (n.text?.value ?? '') : (n.text ?? ''),
-                properties: n.properties ?? {},
-              })),
-              edges: (graphData.edges || []).map((e: any) => ({
-                id: e.id,
-                type: e.type ?? 'polyline',
-                sourceNodeId: e.sourceNodeId,
-                targetNodeId: e.targetNodeId,
-                properties: e.properties ?? {},
-              })),
-            }
-            onSave(doc)
+            // 阶段 2: 优先传递纯语义给后端，不含任何视图字段
+            const semantic = buildSemanticDocument(lf, '')
+            onSave(semantic as unknown as RuleFlowDocument)
           }
         } catch (_e) {
           toast('error', '保存失败')
@@ -416,15 +383,15 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     })
     bind('toggle-sidebar', (e) => {
       e.preventDefault()
-      editUI.toggleSidebar()
+      toggleSidebar()
     })
     bind('toggle-panel', (e) => {
       e.preventDefault()
-      editUI.togglePanel()
+      togglePanel()
     })
     bind('cycle-density', (e) => {
       e.preventDefault()
-      editUI.cycleDensityMode()
+      cycleDensityMode()
     })
     bind('zoom-reset', (e) => {
       e.preventDefault()
@@ -441,30 +408,32 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     bind('debug-start', (e) => {
       e.preventDefault()
       if (onDebugStart) onDebugStart()
-      else editUI.startDebug()
+      else startDebug()
     })
     bind('debug-stop', (e) => {
       e.preventDefault()
-      editUI.stopDebug()
+      stopDebug()
     })
     bind('focus-mode', (e) => {
       e.preventDefault()
-      editUI.toggleFocusMode()
+      toggleFocusMode()
     })
 
     return () => {
+      // Precisely unbind each shortcut before deleting scope
+      Object.values(effectiveShortcuts).forEach((keys) => {
+        if (keys) hotkeys.unbind(keys, 'ruleflow-editor')
+      })
       hotkeys.deleteScope('ruleflow-editor')
     }
-  }, [effectiveMode, editUI, hotkeyOverrides, onDebugStart, onSave, toast, effectiveShortcuts])
+  }, [effectiveMode, hotkeyOverrides, onDebugStart, onSave, toast, effectiveShortcuts])
 
-  // P0-B: Focus/blur handling (only in edit mode)
+  // P1-4.3: Focus/blur handling (edit mode, hotkeys is static import)
   useEffect(() => {
-    if (effectiveMode !== 'edit' || !editUI?.hotkeys) return
+    if (effectiveMode !== 'edit') return
 
     const el = containerRef.current
     if (!el) return
-
-    const hotkeys = editUI.hotkeys
 
     const onFocus = () => {
       hotkeys.setScope('ruleflow-editor')
@@ -480,7 +449,7 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
       el.removeEventListener('focusin', onFocus)
       el.removeEventListener('focusout', onBlur)
     }
-  }, [effectiveMode, editUI])
+  }, [effectiveMode])
 
   // ── Compute grid-template-columns ──
   let gridCols: string
@@ -518,14 +487,13 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
     .join(' ')
 
   const handleExecuteCommand = (cmdId: string) => {
-    if (!editUI) return
     switch (cmdId) {
       case 'run':
         if (onDebugStart) onDebugStart()
-        else editUI.startDebug()
+        else startDebug()
         break
       case 'stop':
-        editUI.stopDebug()
+        stopDebug()
         break
       default:
         console.log('Command:', cmdId)
@@ -589,7 +557,7 @@ export function RuleFlowEditor(props: RuleFlowEditorProps = {}) {
       {/* Command palette (Ctrl+K) - only in edit mode */}
       {editUI && cmdPaletteVisible && (
         <editUI.CommandPalette
-          onClose={editUI.hideCommandPalette}
+          onClose={hideCommandPalette}
           onExecuteCommand={handleExecuteCommand}
         />
       )}

@@ -21,6 +21,27 @@ import {
   syncHistoryState,
 } from '../../store'
 
+/** Detect if adding target→source would create a cycle via DFS */
+function detectCycle(lf: LogicFlow, sourceNodeId: string, targetNodeId: string): boolean {
+  const visited = new Set<string>()
+  const stack = [targetNodeId]
+  while (stack.length > 0) {
+    const current = stack.pop()!
+    if (current === sourceNodeId) return true
+    if (visited.has(current)) continue
+    visited.add(current)
+    try {
+      const edges = lf.getGraphData().edges || []
+      for (const e of edges) {
+        if (e.sourceNodeId === current) stack.push(e.targetNodeId)
+      }
+    } catch (_e) {
+      break
+    }
+  }
+  return false
+}
+
 /** Setup all LogicFlow event handlers. Returns a cleanup function. */
 export function setupLogicFlowEvents(
   lf: LogicFlow,
@@ -51,21 +72,28 @@ export function setupLogicFlowEvents(
     }, 100)
   }
 
-  // Graph updated → update stats & history state
+  // Graph updated → update stats & history state (debounced)
+  let updateTimer: ReturnType<typeof setTimeout> | null = null
   lf.on('graph:updated', () => {
-    try {
-      const data = lf.getGraphData()
-      const nc = data?.nodes?.length || 0
-      const ec = data?.edges?.length || 0
-      nodeCount.value = nc
-      edgeCount.value = ec
-      setIsEmpty(nc === 0)
-      setAllNodes(data?.nodes || [])
-      syncHistoryState()
-      debouncedUpdate()
-    } catch (e) {
-      if (import.meta.env.DEV) console.warn('[RuleFlow] graph update handler failed:', e)
-    }
+    if (updateTimer) clearTimeout(updateTimer)
+    updateTimer = setTimeout(() => {
+      try {
+        const data = lf.getGraphData()
+        const nc = data?.nodes?.length || 0
+        const ec = data?.edges?.length || 0
+        if (nodeCount.value !== nc) nodeCount.value = nc
+        if (edgeCount.value !== ec) edgeCount.value = ec
+        setIsEmpty(nc === 0)
+        setAllNodes(data?.nodes || [])
+        syncHistoryState()
+        debouncedUpdate()
+        // 注：text.x/y=null 的边界 case 由序列化时统一拍扁处理（flattenText），
+        // graphData 层面的修复不影响 model.text（LogicFlow 视图层），
+        // 故此处不再做无效的 model.text 修复。
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn('[RuleFlow] graph update handler failed:', e)
+      }
+    }, 50)
   })
 
   // Node click → select & show property bubble
@@ -94,8 +122,48 @@ export function setupLogicFlowEvents(
     hideBatchToolbar()
   })
 
-  // Edge creation → show relation type selector
+  // Edge creation → validate then show relation type selector
   lf.on('edge:add', ({ data }: EdgeAddEvent) => {
+    // Self-loop detection
+    if (data.sourceNodeId === data.targetNodeId) {
+      try {
+        lf.deleteEdge(data.id)
+      } catch (_e) {
+        /* ignore */
+      }
+      if (import.meta.env.DEV) console.warn('[RuleFlow] Self-loop edge blocked:', data.id)
+      return
+    }
+
+    // Cycle detection
+    if (detectCycle(lf, data.sourceNodeId, data.targetNodeId)) {
+      try {
+        lf.deleteEdge(data.id)
+      } catch (_e) {
+        /* ignore */
+      }
+      if (import.meta.env.DEV) console.warn('[RuleFlow] Cyclic edge blocked:', data.id)
+      return
+    }
+
+    // Duplicate edge detection
+    try {
+      const edges = lf.getGraphData().edges || []
+      const duplicate = edges.some(
+        (e) =>
+          e.id !== data.id &&
+          e.sourceNodeId === data.sourceNodeId &&
+          e.targetNodeId === data.targetNodeId,
+      )
+      if (duplicate) {
+        lf.deleteEdge(data.id)
+        if (import.meta.env.DEV) console.warn('[RuleFlow] Duplicate edge blocked:', data.id)
+        return
+      }
+    } catch (_e) {
+      /* ignore */
+    }
+
     try {
       const model = lf.getEdgeModelById(data.id)
       if (model) {
@@ -143,11 +211,15 @@ export function setupLogicFlowEvents(
     }
   })
 
-  // Cleanup: clear pending debounce timer
+  // Cleanup: clear pending timers
   return () => {
     if (debounceTimer) {
       clearTimeout(debounceTimer)
       debounceTimer = null
+    }
+    if (updateTimer) {
+      clearTimeout(updateTimer)
+      updateTimer = null
     }
     // No explicit lf.off() needed — lf.destroy() handles that
   }

@@ -67,7 +67,6 @@
     "pre-push:quick": "pwsh -File scripts/pre-push-check.ps1 -SkipTests -SkipBuild"
   },
   "dependencies": {
-    "@floating-ui/dom": "^1.7.6",
     "fuse.js": "^7.4.2",
     "hotkeys-js": "^4.0.4",
     "js-yaml": "^4.2.0",

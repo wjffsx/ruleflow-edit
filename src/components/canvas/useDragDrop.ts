@@ -60,7 +60,7 @@ export function useDragDrop({ lfRef, setIsEmpty, readOnly = false }: UseDragDrop
       }
 
       lf.addNode({
-        id: `${item.type}_${Date.now()}`,
+        id: `${item.type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         type: lfType,
         x: point.x,
         y: point.y,

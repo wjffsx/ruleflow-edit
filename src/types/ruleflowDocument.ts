@@ -179,6 +179,12 @@ const LAYOUT = {
  * Convert a VPPTU rulechain YAML string to RuleFlowDocument.
  * This is a one-time migration function for importing old configs.
  *
+ * @deprecated 自 v0.4.0 起，反向解析不再推荐。v0.4.0 落盘格式已切换到
+ *             SemanticDocument（语义/视图分离），新代码应使用
+ *             {@link readJsonFile} + {@link mergeFromSemanticAndView} 加载。
+ *             本函数仅作为旧 YAML 兼容兜底，**计划在 v0.5.0 删除**。
+ *             后续 6 个月内保留，期间若发现问题请回退到原始 YAML。
+ *
  * Expected YAML structure (ruleflow Go engine format):
  * ```yaml
  * chain:

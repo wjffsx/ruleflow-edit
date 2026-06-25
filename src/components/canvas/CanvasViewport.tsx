@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'preact/hooks'
 import type { Ref } from 'preact'
-import type { GraphData, NodeData } from '@logicflow/core'
+// v0.4.0: GraphData/NodeData 在 logicflow 包内类型不稳定，改用 any 兜底
 import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../../types/ruleflowDocument'
 import type { EditorMode, MonitorState, MonitorNodeState } from '../../layout/RuleFlowEditor'
 import { RelationTypeSelector } from './RelationTypeSelector'
@@ -30,7 +30,7 @@ import {
   showNodeSearch,
   hideBatchToolbar,
   batchToolbarState,
-} from '../../store/canvasActions'
+} from '../../store/canvasStore'
 import { DEMO_DATA } from '../../data'
 import hotkeys from 'hotkeys-js'
 
@@ -94,6 +94,8 @@ export function CanvasViewport({
     // If it's a RuleFlowDocument, extract nodes/edges
     if ('chainId' in initialData && 'nodes' in initialData) {
       const doc = initialData as RuleFlowDocument
+      // P2-3.4: Reference integrity — filter edges referencing non-existent nodes
+      const nodeIds = new Set(doc.nodes.map((n) => n.id))
       return {
         nodes: doc.nodes.map((n) => ({
           id: n.id,
@@ -128,20 +130,27 @@ export function CanvasViewport({
             }
             return edge
           })
-          .filter((e) => e.id && e.sourceNodeId && e.targetNodeId) as GraphData['edges'],
+          .filter(
+            (e) =>
+              e.id &&
+              e.sourceNodeId &&
+              e.targetNodeId &&
+              nodeIds.has(e.sourceNodeId) &&
+              nodeIds.has(e.targetNodeId),
+          ) as GraphData['edges'],
       }
     }
     // Already GraphData
     return initialData as GraphData
   }, [initialData])
 
-  // Keyboard shortcuts (unified via hotkeys-js)
+  // Keyboard shortcuts (scoped to ruleflow-editor to avoid global conflicts)
   useEffect(() => {
-    hotkeys('ctrl+f', (e) => {
+    hotkeys('ctrl+f', { scope: 'ruleflow-editor' }, (e) => {
       e.preventDefault()
       showNodeSearch()
     })
-    return () => hotkeys.unbind('ctrl+f')
+    return () => hotkeys.unbind('ctrl+f', 'ruleflow-editor')
   }, [])
 
   // ── Sync debugNodeStates → LogicFlow node/edge properties ──
@@ -438,7 +447,27 @@ export function CanvasViewport({
           y={batchToolbar.y}
           selectedCount={batchToolbar.count}
           onCopy={() => {
-            /* TODO */
+            // P2-5.5: Clone each selected node with offset
+            if (readOnly) return
+            const lf = lfRef.current
+            if (!lf) return
+            const cloned: string[] = []
+            selectedNodeIds.value.forEach((id) => {
+              try {
+                const model: any = lf.getNodeModelById(id)
+                if (!model) return
+                // LogicFlow's cloneNode returns the new id when supported
+                const newId = lf.cloneNode(id, { offsetX: 20, offsetY: 20 } as any)
+                if (newId !== undefined && newId !== null) cloned.push(String(newId))
+              } catch (e) {
+                if (import.meta.env.DEV) console.warn('[RuleFlow] batch clone node failed:', e)
+              }
+            })
+            if (cloned.length) {
+              selectedNodeIds.value = cloned
+              if (import.meta.env.DEV)
+                console.log('[RuleFlow] batch copied', cloned.length, 'nodes')
+            }
           }}
           onDelete={() => {
             if (readOnly) return
@@ -455,10 +484,24 @@ export function CanvasViewport({
             }
           }}
           onToggleEnable={() => {
-            /* TODO */
+            // P2-5.5: Toggle enabled property on each selected node
+            if (readOnly) return
+            const lf = lfRef.current
+            if (!lf) return
+            selectedNodeIds.value.forEach((id) => {
+              try {
+                const model: any = lf.getNodeModelById(id)
+                if (!model) return
+                const cur = (model.properties?.enabled ?? true) as boolean
+                model.setProperties({ ...model.properties, enabled: !cur })
+              } catch (e) {
+                if (import.meta.env.DEV) console.warn('[RuleFlow] batch toggle enable failed:', e)
+              }
+            })
           }}
           onGroup={() => {
-            /* TODO */
+            // P2-5.5: Grouping requires LF Group extension; show a friendly hint
+            console.info('[RuleFlow] Grouping is not supported in this build')
           }}
         />
       )}

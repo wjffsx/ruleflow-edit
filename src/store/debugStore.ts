@@ -87,8 +87,23 @@ export function setDebugNodeState(nodeId: string, state: DebugNodeState): void {
   debugNodeStates.value = { ...debugNodeStates.value, [nodeId]: state }
 }
 
-/** Maximum number of debug messages to retain */
-const MAX_DEBUG_MESSAGES = 500
+/** Maximum number of debug messages to retain
+ * P3-6.6: Reduce on low-perf devices to save memory
+ */
+const MAX_DEBUG_MESSAGES = (() => {
+  try {
+    if (
+      typeof navigator !== 'undefined' &&
+      typeof navigator.hardwareConcurrency === 'number' &&
+      navigator.hardwareConcurrency <= 4
+    ) {
+      return 100
+    }
+  } catch (_e) {
+    /* ignore */
+  }
+  return 500
+})()
 
 /** Add a debug message to the log */
 export function addDebugMessage(msg: { nodeId: string; type: string; message: string }): void {

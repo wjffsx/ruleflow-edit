@@ -1,17 +1,20 @@
 /**
  * Floating position calculation for RuleFlow Editor.
- * Uses @floating-ui/dom for advanced positioning and provides
- * a simple synchronous fallback for cases where floating-ui's
- * async API is not needed.
+ * P2-6.3: Removed unused @floating-ui/dom import (only calculateSimplePosition is used).
+ * P2-5.1: Added optional container parameter for container-bounded positioning
+ *         (editor is usually embedded in a container smaller than window).
  */
-import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom'
-
-export { computePosition, flip, shift, offset, autoUpdate }
 
 /**
- * Calculate position for a floating element, keeping it within the viewport.
- * Simple synchronous viewport-aware positioning for cases where
- * floating-ui's async API is not needed.
+ * Calculate position for a floating element, keeping it within the container or viewport.
+ * @param anchorX Anchor X coordinate (relative to document or container)
+ * @param anchorY Anchor Y coordinate (relative to document or container)
+ * @param floatingWidth Width of the floating element
+ * @param floatingHeight Height of the floating element
+ * @param offsetVal Offset from anchor
+ * @param container Optional container element. If provided, positioning is bounded by
+ *                  the container's rect (better for embedded scenarios). Otherwise
+ *                  falls back to window inner dimensions.
  */
 export function calculateSimplePosition(
   anchorX: number,
@@ -19,16 +22,38 @@ export function calculateSimplePosition(
   floatingWidth: number = 200,
   floatingHeight: number = 200,
   offsetVal: number = 8,
+  container?: HTMLElement | null,
 ): { x: number; y: number } {
-  const viewportWidth = window.innerWidth
-  const viewportHeight = window.innerHeight
+  let boundaryWidth: number
+  let boundaryHeight: number
+  let offsetOriginX = 0
+  let offsetOriginY = 0
+
+  if (container) {
+    try {
+      const rect = container.getBoundingClientRect()
+      boundaryWidth = rect.width
+      boundaryHeight = rect.height
+      offsetOriginX = rect.left
+      offsetOriginY = rect.top
+    } catch (_e) {
+      boundaryWidth = typeof window !== 'undefined' ? window.innerWidth : 1024
+      boundaryHeight = typeof window !== 'undefined' ? window.innerHeight : 768
+    }
+  } else if (typeof window !== 'undefined') {
+    boundaryWidth = window.innerWidth
+    boundaryHeight = window.innerHeight
+  } else {
+    boundaryWidth = 1024
+    boundaryHeight = 768
+  }
 
   // Default: position to the right and slightly above
   let posX = anchorX + offsetVal
   let posY = anchorY - 40
 
   // Flip to left if would overflow right edge
-  if (posX + floatingWidth > viewportWidth - 8) {
+  if (posX + floatingWidth > boundaryWidth - 8) {
     posX = anchorX - floatingWidth - offsetVal
   }
 
@@ -38,9 +63,13 @@ export function calculateSimplePosition(
   }
 
   // Shift up if would overflow bottom edge
-  if (posY + floatingHeight > viewportHeight - 8) {
-    posY = viewportHeight - floatingHeight - 8
+  if (posY + floatingHeight > boundaryHeight - 8) {
+    posY = boundaryHeight - floatingHeight - 8
   }
+
+  // Clamp to container origin (avoid negative offset)
+  if (posX < offsetOriginX + 4) posX = offsetOriginX + 4
+  if (posY < offsetOriginY + 4) posY = offsetOriginY + 4
 
   return { x: posX, y: posY }
 }
