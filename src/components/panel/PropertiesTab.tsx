@@ -51,7 +51,7 @@ function PortPropertiesEditor({ nodeId, readOnly }: { nodeId: string; readOnly: 
     if (model) {
       props = (model.properties as Record<string, unknown>) || {}
       // model.type 是 LogicFlow 注册类型：rf-input-port / rf-output-port
-      lfType = (model as unknown as Record<string, unknown>).type as string || ''
+      lfType = ((model as unknown as Record<string, unknown>).type as string) || ''
     }
   } catch (_e) {
     return null
@@ -101,7 +101,9 @@ function PortPropertiesEditor({ nodeId, readOnly }: { nodeId: string; readOnly: 
           onChange={(e) => setProp('pointType', (e.target as HTMLSelectElement).value)}
         >
           {POINT_TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
+            <option key={t} value={t}>
+              {t}
+            </option>
           ))}
         </select>
 
@@ -116,7 +118,9 @@ function PortPropertiesEditor({ nodeId, readOnly }: { nodeId: string; readOnly: 
           onChange={(e) => setProp('dataType', (e.target as HTMLSelectElement).value)}
         >
           {DATA_TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
+            <option key={t} value={t}>
+              {t}
+            </option>
           ))}
         </select>
 
@@ -156,7 +160,9 @@ function PortPropertiesEditor({ nodeId, readOnly }: { nodeId: string; readOnly: 
               onChange={(e) => setProp('scope', (e.target as HTMLSelectElement).value)}
             >
               {SCOPE_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
             </select>
 

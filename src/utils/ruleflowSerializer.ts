@@ -276,8 +276,14 @@ function toViewEdge(e: LfEdge): ViewEdge {
 
 /** 端口节点 properties 中属于 inputs/outputs 的字段（提取后从节点中移除避免冗余） */
 const PORT_SEMANTIC_FIELDS = [
-  'pointName', 'displayName', 'pointType', 'dataType', 'unit', 'group',
-  'scope', 'inputPoints',
+  'pointName',
+  'displayName',
+  'pointType',
+  'dataType',
+  'unit',
+  'group',
+  'scope',
+  'inputPoints',
 ] as const
 
 /**
@@ -445,11 +451,12 @@ export function mergeFromSemanticAndView(
     nodes: semantic.nodes.map((sn) => {
       const vn = viewNodeMap.get(sn.id)
       // 从 semantic.inputs[]/outputs[] 中查找匹配的端口配置回填
-      const portConfig = sn.type === 'rf-input-port'
-        ? inputMap.get((sn.properties.pointName as string) ?? '')
-        : sn.type === 'rf-output-port'
-          ? outputMap.get((sn.properties.pointName as string) ?? '')
-          : undefined
+      const portConfig =
+        sn.type === 'rf-input-port'
+          ? inputMap.get((sn.properties.pointName as string) ?? '')
+          : sn.type === 'rf-output-port'
+            ? outputMap.get((sn.properties.pointName as string) ?? '')
+            : undefined
       return {
         id: sn.id,
         type: sn.type,

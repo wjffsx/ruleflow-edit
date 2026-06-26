@@ -62,7 +62,8 @@ export function FileGroup() {
                 const edges = (obj.edges as Array<Record<string, unknown>>) || []
 
                 // 检测是否为语义文档（v2 双文件格式）
-                const isSemantic = obj.version === '2.0' && nodes.length > 0 && nodes[0].x === undefined
+                const isSemantic =
+                  obj.version === '2.0' && nodes.length > 0 && nodes[0].x === undefined
 
                 if (isSemantic) {
                   // 加载语义文档 + 视图文档（localStorage 兜底）
@@ -70,7 +71,10 @@ export function FileGroup() {
                   const view = loadViewFromLocalStorage(chainId)
                   const merged = mergeFromSemanticAndView(obj as any, view)
                   lf.render(merged as any)
-                  chainName.value = (obj.chainName as string) || file.name.replace(/\.rules\.json$/, '').replace('.json', '') || '未命名规则链'
+                  chainName.value =
+                    (obj.chainName as string) ||
+                    file.name.replace(/\.rules\.json$/, '').replace('.json', '') ||
+                    '未命名规则链'
                 } else {
                   // 旧版单文件格式
                   lf.render({ nodes, edges } as any)
