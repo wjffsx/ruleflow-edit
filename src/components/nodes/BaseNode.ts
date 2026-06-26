@@ -67,6 +67,8 @@ export class RuleFlowBaseModel extends RectNodeModel {
     this.width = data.properties?.width || 200
     this.height = data.properties?.height || 80
     this.radius = 8
+    // 禁用 LogicFlow 默认 TextNode 渲染，避免与自定义 getShape() 文本重叠
+    ;(this as any).textMode = 'none'
   }
 
   getNodeStyle() {
@@ -85,6 +87,11 @@ export class RuleFlowBaseModel extends RectNodeModel {
     style.stroke = 'var(--rf-brand-primary, #2563eb)'
     style.strokeDasharray = '3 3'
     return style
+  }
+
+  /** 禁用基类默认文本渲染，由自定义 getShape() 完全控制文本显示。 */
+  getTextStyle(): null {
+    return null
   }
 }
 
