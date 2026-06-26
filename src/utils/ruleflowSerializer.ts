@@ -274,9 +274,16 @@ function toViewEdge(e: LfEdge): ViewEdge {
 // 阶段 2: 顶层 API
 // ============================================================
 
+/** 端口节点 properties 中属于 inputs/outputs 的字段（提取后从节点中移除避免冗余） */
+const PORT_SEMANTIC_FIELDS = [
+  'pointName', 'displayName', 'pointType', 'dataType', 'unit', 'group',
+  'scope', 'inputPoints',
+] as const
+
 /**
  * 从 LogicFlow 实例构建纯语义文档（后端使用）。
  * 严格不包含任何视图字段（x/y/width/height/icon/pointsList 等）。
+ * 自动从 rf-input-port 节点提取 inputs[]，从 rf-output-port 节点提取 outputs[]。
  */
 export function buildSemanticDocument(
   lf: LogicFlow,
@@ -284,6 +291,51 @@ export function buildSemanticDocument(
   options: { chainId?: string; description?: string } = {},
 ): SemanticDocument {
   const graphData = lf.getGraphData() as { nodes?: LfNode[]; edges?: LfEdge[] }
+  const rawNodes = graphData.nodes || []
+
+  // 提取 inputs[]（从 rf-input-port 节点）
+  const inputs: Array<Record<string, unknown>> = []
+  // 提取 outputs[]（从 rf-output-port 节点）
+  const outputs: Array<Record<string, unknown>> = []
+
+  const semanticNodes = rawNodes.map((n) => {
+    const sn = toSemanticNode(n)
+    if (n.type === 'rf-input-port') {
+      const props = n.properties ?? {}
+      const input: Record<string, unknown> = {
+        pointName: props.pointName ?? `${n.id}`,
+      }
+      if (props.displayName) input.displayName = props.displayName
+      if (props.pointType) input.pointType = props.pointType
+      else input.pointType = 'analog'
+      if (props.dataType) input.dataType = props.dataType
+      else input.dataType = 'double'
+      if (props.unit) input.unit = props.unit
+      if (props.group) input.group = props.group
+      inputs.push(input)
+      // 从节点 properties 中移除端口语义字段（避免冗余）
+      PORT_SEMANTIC_FIELDS.forEach((f) => delete sn.properties[f])
+    } else if (n.type === 'rf-output-port') {
+      const props = n.properties ?? {}
+      const output: Record<string, unknown> = {
+        pointName: props.pointName ?? `${n.id}`,
+        displayName: (props.displayName as string) ?? '',
+      }
+      if (props.pointType) output.pointType = props.pointType
+      else output.pointType = 'virtual'
+      if (props.dataType) output.dataType = props.dataType
+      else output.dataType = 'double'
+      if (props.unit) output.unit = props.unit
+      if (props.group) output.group = props.group
+      if (props.scope) output.scope = props.scope
+      if (props.inputPoints) output.inputPoints = props.inputPoints
+      outputs.push(output)
+      // 从节点 properties 中移除端口语义字段（避免冗余）
+      PORT_SEMANTIC_FIELDS.forEach((f) => delete sn.properties[f])
+    }
+    return sn
+  })
+
   return {
     version: '2.0',
     chainId: options.chainId ?? '',
@@ -293,7 +345,9 @@ export function buildSemanticDocument(
     evaluationMode: 'all',
     description: options.description,
     schemaVersion: 1,
-    nodes: (graphData.nodes || []).map(toSemanticNode),
+    inputs: inputs.length > 0 ? inputs : undefined,
+    outputs: outputs.length > 0 ? outputs : undefined,
+    nodes: semanticNodes,
     edges: (graphData.edges || []).map(toSemanticEdge),
   }
 }
@@ -348,6 +402,7 @@ export function splitToSemanticAndView(
 /**
  * 合并 semantic + view → RuleFlowDocument（用于加载到 LogicFlow）。
  * view 可选：若缺失则使用默认布局（LogicFlow 自动布局）。
+ * 自动将 semantic.inputs[]/outputs[] 回填到对应端口节点 properties。
  */
 export function mergeFromSemanticAndView(
   semantic: SemanticDocument,
@@ -359,6 +414,23 @@ export function mergeFromSemanticAndView(
     view.nodes.forEach((n) => viewNodeMap.set(n.id, n))
     view.edges.forEach((e) => viewEdgeMap.set(e.id, e))
   }
+
+  // 构建 inputs[]/outputs[] 查找表：pointName → 条目
+  const inputMap = new Map<string, Record<string, unknown>>()
+  const outputMap = new Map<string, Record<string, unknown>>()
+  if (semantic.inputs) {
+    semantic.inputs.forEach((inp) => {
+      const pn = (inp.pointName as string) || ''
+      if (pn) inputMap.set(pn, inp)
+    })
+  }
+  if (semantic.outputs) {
+    semantic.outputs.forEach((out) => {
+      const pn = (out.pointName as string) || ''
+      if (pn) outputMap.set(pn, out)
+    })
+  }
+
   return {
     chainId: semantic.chainId,
     chainName: semantic.chainName,
@@ -372,6 +444,12 @@ export function mergeFromSemanticAndView(
     outputs: semantic.outputs as any,
     nodes: semantic.nodes.map((sn) => {
       const vn = viewNodeMap.get(sn.id)
+      // 从 semantic.inputs[]/outputs[] 中查找匹配的端口配置回填
+      const portConfig = sn.type === 'rf-input-port'
+        ? inputMap.get((sn.properties.pointName as string) ?? '')
+        : sn.type === 'rf-output-port'
+          ? outputMap.get((sn.properties.pointName as string) ?? '')
+          : undefined
       return {
         id: sn.id,
         type: sn.type,
@@ -380,6 +458,7 @@ export function mergeFromSemanticAndView(
         text: sn.text,
         properties: {
           ...sn.properties,
+          ...(portConfig || {}),
           ...(vn?.width != null ? { width: vn.width } : {}),
           ...(vn?.height != null ? { height: vn.height } : {}),
           ...(vn?.icon ? { icon: vn.icon } : {}),

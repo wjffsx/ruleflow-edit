@@ -8,11 +8,11 @@ import {
   safeJsonParse,
   RuleFlowError,
   ERROR_CODES,
-  buildRuleflowDocument,
   buildSemanticDocument,
   buildViewDocument,
-  downloadAsJsonFile,
-  readJsonFile,
+  downloadAsJsonPair,
+  mergeFromSemanticAndView,
+  loadViewFromLocalStorage,
   saveViewToLocalStorage,
   validateSemanticDocument,
 } from '../../utils'
@@ -48,20 +48,38 @@ export function FileGroup() {
             if (file) {
               const reader = new FileReader()
               reader.onload = (event) => {
-                const data = safeJsonParse(event.target?.result as string, isValidGraphData)
+                const raw = event.target?.result as string
+                const data = safeJsonParse(raw, isValidGraphData)
                 if (!data) {
                   showWarning('文件格式不正确：缺少 nodes/edges')
                   return
                 }
                 const lf = lfInstance.value
-                if (lf) {
-                  lf.render(data as any)
+                if (!lf) return
+
+                const obj = data as Record<string, unknown>
+                const nodes = (obj.nodes as Array<Record<string, unknown>>) || []
+                const edges = (obj.edges as Array<Record<string, unknown>>) || []
+
+                // 检测是否为语义文档（v2 双文件格式）
+                const isSemantic = obj.version === '2.0' && nodes.length > 0 && nodes[0].x === undefined
+
+                if (isSemantic) {
+                  // 加载语义文档 + 视图文档（localStorage 兜底）
+                  const chainId = (obj.chainId as string) || ''
+                  const view = loadViewFromLocalStorage(chainId)
+                  const merged = mergeFromSemanticAndView(obj as any, view)
+                  lf.render(merged as any)
+                  chainName.value = (obj.chainName as string) || file.name.replace(/\.rules\.json$/, '').replace('.json', '') || '未命名规则链'
+                } else {
+                  // 旧版单文件格式
+                  lf.render({ nodes, edges } as any)
                   chainName.value =
-                    (data.chainName as string) || file.name.replace('.json', '') || '未命名规则链'
-                  nodeCount.value = data.nodes?.length || 0
-                  edgeCount.value = data.edges?.length || 0
-                  showSuccess(`已加载规则链: ${chainName.value}`)
+                    (obj.chainName as string) || file.name.replace('.json', '') || '未命名规则链'
                 }
+                nodeCount.value = nodes.length || 0
+                edgeCount.value = edges.length || 0
+                showSuccess(`已加载规则链: ${chainName.value}`)
               }
               reader.readAsText(file)
             }
@@ -92,9 +110,8 @@ export function FileGroup() {
             // 阶段 4.1: 视图态本地化（自动恢复）
             saveViewToLocalStorage(view, name)
 
-            // 旧版兼容：仍输出单文件（迁移期）
-            const doc = buildRuleflowDocument(lf, name)
-            downloadAsJsonFile(doc)
+            // 阶段 2: 输出双文件（语义 + 视图）
+            downloadAsJsonPair(semantic, view, name)
             showSuccess('规则链已保存（语义+视图）')
           } catch (err) {
             const error = new RuleFlowError('文件保存失败', ERROR_CODES.FILE_OPERATION, {

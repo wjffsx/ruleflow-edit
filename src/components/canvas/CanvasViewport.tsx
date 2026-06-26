@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'preact/hooks'
 import type { Ref } from 'preact'
-// v0.4.0: GraphData/NodeData 在 logicflow 包内类型不稳定，改用 any 兜底
+import type { GraphData } from '@logicflow/core'
 import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../../types/ruleflowDocument'
 import type { EditorMode, MonitorState, MonitorNodeState } from '../../layout/RuleFlowEditor'
 import { RelationTypeSelector } from './RelationTypeSelector'

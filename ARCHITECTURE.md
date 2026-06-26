@@ -952,6 +952,322 @@ ESLint 10 flat config + typescript-eslint:
 
 ---
 
+## 15. 顶层 inputs[] / outputs[] 设计方案
+
+### 15.1 概念区分：三个层次
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    规则链 SemanticDocument                    │
+│                                                             │
+│  inputs[]  ── 数据点定义（"有哪些输入信号"）                    │
+│  outputs[] ── 数据点定义（"产生哪些输出信号"）                  │
+│  nodes[]   ── 流程图节点（"信号经过哪些处理步骤"）              │
+│  edges[]   ── 节点间的连接关系                                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+| 概念 | 对应物 | 用途 | 归属 |
+|------|--------|------|------|
+| **数据点** | 物理/虚拟测点 | 描述信号的名称、类型、单位 | 规则链元数据 |
+| **端口节点** | 画布上的 `rf-input-port` / `rf-output-port` | 可视化的数据流起点/终点 | 流程图拓扑 |
+| **中间节点** | `rf-condition` / `rf-action` | 数据处理逻辑 | 流程图拓扑 |
+
+### 15.2 设计决策：端口节点 ↔ inputs[] 双向绑定
+
+采用**模式一（推荐）**：每个 `rf-input-port` 节点对应一个 `inputs[i]` 条目，`rf-output-port` 对应一个 `outputs[j]`。
+
+```
+画布上的 rf-input-port 节点
+  ├── id: "port:input_voltage"
+  ├── text: "电压输入"
+  └── properties:
+        ├── pointName: "m1:UA"        ← 对应 inputs[i].pointName
+        ├── displayName: "A 相电压"    ← 对应 inputs[i].displayName
+        ├── pointType: "analog"        ← 对应 inputs[i].pointType
+        ├── dataType: "double"         ← 对应 inputs[i].dataType
+        └── unit: "V"                  ← 对应 inputs[i].unit
+```
+
+选型理由：
+- 无冗余——改一个地方即可
+- 直观——用户在画布上看到输入端口，选中即可编辑其数据点属性
+- 保持语义一致性——`summary` 已经隐含了这个意图
+
+### 15.3 端口节点 properties 规范
+
+| 字段 | 用途 | 对应顶层字段 | 示例 |
+|------|------|------------|------|
+| `pointName` | 数据点 FQN | `inputs[i].pointName` | `"analog_input"` |
+| `displayName` | 显示名称 | `inputs[i].displayName` | `"模拟量输入"` |
+| `pointType` | 测点类型 | `inputs[i].pointType` | `"analog"` |
+| `dataType` | 数据类型 | `inputs[i].dataType` | `"double"` |
+| `unit` | 单位 | `inputs[i].unit` | `"kW"` |
+| `group` | 分组 | `inputs[i].group` | `"measurement"` |
+
+输出端口额外支持：
+
+| 字段 | 用途 | 对应顶层字段 | 示例 |
+|------|------|------------|------|
+| `scope` | 作用域 | `outputs[i].scope` | `"per_device"` |
+| `inputPoints` | 关联输入 | `outputs[i].inputPoints` | `["analog_input"]` |
+
+### 15.4 roleInRule 补充
+
+当前 `useDragDrop.ts` 拖入端口节点时未设置 `roleInRule`，应补充：
+
+| 节点类型 | `roleInRule` | 说明 |
+|---------|-------------|------|
+| `rf-input-port` | `"input"` | 输入端口 |
+| `rf-output-port` | `"output"` | 输出端口 |
+
+### 15.5 映射逻辑
+
+**保存时（`buildSemanticDocument` → `inputs[]`/`outputs[]`）**：
+
+```
+遍历 nodes，筛选 type === 'rf-input-port'
+  → 提取 properties 中的 pointName/displayName/pointType/dataType/unit/group
+  → 构建 Input 对象，追加到 inputs[]
+  → 从 SemanticNode.properties 中移除这些字段（避免冗余）
+
+遍历 nodes，筛选 type === 'rf-output-port'
+  → 同理构建 outputs[]
+```
+
+**加载时（`mergeFromSemanticAndView` ← 反方向）**：
+
+```
+inputs[] 中的每个 Input 对象
+  → 查找对应 id 的 port 节点
+  → 将 pointName 等字段填入节点 properties
+```
+
+### 15.6 整体数据流
+
+```
+规则链编辑器 ──保存──→ SemanticDocument（含 inputs[]/outputs[]/nodes[]/edges[]）
+                            │
+                            ▼
+                      ViewDocument（仅几何信息，不带业务字段）
+                            │
+                            ▼
+                      localStorage（前端自动恢复布局）
+```
+
+其中 `inputs[]` 和 `outputs[]` 不属于流程图拓扑，而是**规则链的接口契约**——告诉后端系统："这条规则链需要这些输入信号，产出这些输出信号"。流程图节点描述的是"信号如何在内部流转和处理"。
+
+### 15.7 Demo 数据示例
+
+```json
+{
+  "version": "2.0",
+  "chainName": "未命名规则链",
+  "inputs": [
+    {
+      "pointName": "analog_input",
+      "displayName": "模拟量输入",
+      "pointType": "analog",
+      "dataType": "double",
+      "unit": "kW"
+    }
+  ],
+  "outputs": [
+    {
+      "pointName": "scale_output",
+      "displayName": "变换结果",
+      "pointType": "virtual",
+      "dataType": "double",
+      "unit": "kW",
+      "scope": "per_device",
+      "inputPoints": ["analog_input"]
+    }
+  ],
+  "nodes": [
+    { "id": "port:analog_input", "type": "rf-input-port", ... },
+    { "id": "act:scale", "type": "rf-action", ... },
+    { "id": "port:scale_output", "type": "rf-output-port", ... }
+  ]
+}
+```
+
+---
+
+## 16. 实时数值显示方案（端口节点）
+
+### 16.1 需求
+
+在 `http://localhost:3000/web/rule-chains` 可视化页面中，输入/输出端口节点需要显示数据点的实时数值。
+
+### 16.2 数据流
+
+```
+W1.rules.json (inputs[]/outputs[])
+  │  pointName: "M1:UA"  ← FQN = deviceId:metricName
+  ↓
+解析 pointName 为 { deviceId: "M1", metricName: "UA" }
+  │
+  ↓  gRPC (每 3 秒)
+deviceClient.queryDeviceData({ deviceId: "M1", metricName: "UA", limit: 1 })
+  │  不需要传 dataType 参数
+  │
+  ↓
+返回 { value: 42.5, unit: "kW", timestamp }
+  │
+  ↓
+注入到端口节点 summary 行
+  │
+  ↓
+显示: "M1:UA | 42.50 kW | double"
+```
+
+### 16.3 接口说明
+
+**gRPC**: `deviceClient.queryDeviceData()` (`/api/device.v1.DeviceService/QueryDeviceData`)
+
+| 参数 | 值 | 说明 |
+|------|----|------|
+| `deviceId` | 从 FQN 解析（冒号前） | `"M1:UA"` → `"M1"` |
+| `metricName` | 从 FQN 解析（冒号后） | `"M1:UA"` → `"UA"` |
+| `limit` | `1` | 只取最新一个点 |
+| `dataType` | 不传 | 通过 metricName 精确匹配 |
+
+**返回**：`QueryResponse.timeSeries.points[0]`
+
+```typescript
+{
+  value: number    // 数据点数值
+  quality: number  // 数据质量
+  timestamp: number // 时间戳
+}
+```
+
+### 16.4 点名称约定
+
+数据点 FQN 统一使用 `deviceId:metricName` 格式：
+
+| FQN | deviceId | metricName |
+|-----|----------|------------|
+| `M1:UA` | `M1` | `UA` |
+| `device_001:active_power` | `device_001` | `active_power` |
+| `bms_01:soc` | `bms_01` | `soc` |
+
+### 16.5 前端实现
+
+**新增文件**：`web/frontend/src/api/latestValue.ts`
+
+```typescript
+import { deviceClient } from './connect-client'
+
+export interface PointLatestValue {
+  value: number
+  quality: number
+  timestamp: number
+}
+
+function parsePointFQN(fqn: string): { deviceId: string; metricName: string } | null {
+  const idx = fqn.indexOf(':')
+  if (idx <= 0) return null
+  return { deviceId: fqn.substring(0, idx), metricName: fqn.substring(idx + 1) }
+}
+
+export async function getPointsLatest(
+  pointNames: string[]
+): Promise<Record<string, PointLatestValue>> {
+  if (pointNames.length === 0) return {}
+  const results: Record<string, PointLatestValue> = {}
+
+  await Promise.all(
+    pointNames.map(async (pn) => {
+      const parsed = parsePointFQN(pn)
+      if (!parsed) return
+      try {
+        const resp = await deviceClient.queryDeviceData({
+          deviceId: parsed.deviceId,
+          metricName: parsed.metricName,
+          limit: 1,
+        })
+        const ts = resp.timeSeries
+        if (ts?.points?.length > 0) {
+          const p = ts.points[0]
+          results[pn] = { value: p.value, quality: p.quality ?? 0, timestamp: Number(p.timestamp ?? 0) }
+        }
+      } catch { /* 单点失败不影响其他点 */ }
+    })
+  )
+  return results
+}
+```
+
+**修改文件**：`web/frontend/src/components/ruleflow/ChainViewCanvas.tsx`
+
+```typescript
+const [liveValues, setLiveValues] = useState<Record<string, PointLatestValue>>({})
+
+// 提取端口点的 pointName
+const pointNames = useMemo(() => {
+  const names: string[] = []
+  const doc = (() => { try { return JSON.parse(documentJson) } catch { return null } })()
+  if (!doc) return names
+  for (const inp of doc.inputs || []) if (inp.pointName) names.push(inp.pointName)
+  for (const out of doc.outputs || []) if (out.pointName) names.push(out.pointName)
+  return names
+}, [documentJson])
+
+// 3 秒轮询
+useEffect(() => {
+  if (pointNames.length === 0) return
+  const fetch = async () => {
+    const values = await getPointsLatest(pointNames)
+    if (Object.keys(values).length > 0) setLiveValues(values)
+  }
+  fetch()
+  const timer = setInterval(fetch, 3000)
+  return () => clearInterval(timer)
+}, [pointNames.join(',')])
+```
+
+`enhancePortNodes()` 增加 `liveValues` 参数后，summary 格式：
+
+```
+M1:UA | 42.50 kW | double     ← 有实时值
+M1:UA | -- kW | double        ← 无数据
+```
+
+### 16.6 显示效果
+
+```
+输入端口:
+┌──────────────────────────────────────────────┐
+│ → 模拟量输入                         P:1  ● ✓ │
+│ M1:UA | 42.50 kW | double                   │  ← summary 行含实时值
+└──────────────────────────────────────────────┘
+
+输出端口:
+┌──────────────────────────────────────────────┐
+│ ← 变换结果                         P:1  ● ✓ │
+│ O1:UA | 4.25 kW | double                    │
+└──────────────────────────────────────────────┘
+```
+
+### 16.7 涉及文件清单
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `web/frontend/src/api/latestValue.ts` | 新建 | 封装 gRPC 最新值查询 |
+| `web/frontend/src/components/ruleflow/ChainViewCanvas.tsx` | 修改 | 轮询逻辑 + 注入 liveValues |
+| `web/frontend/src/types/ruleflow-edit.d.ts` | 无需改动 | 已有 `any` 兜底 |
+
+### 16.8 注意事项
+
+- `queryDeviceData` 不需要传 `dataType` 参数，通过 `metricName` 精确匹配
+- 单个点查询失败不影响其他点
+- 3 秒轮询间隔，值变化时触发重渲染
+- 前端已有 WebSocket `/ws/data` 实时流可作为替代方案（需传入 deviceIds + dataTypes），但复杂度更高
+- 无需后端改动，复用现有 gRPC API
+
+---
+
 ## 附录 A: 技术决策记录
 
 | 决策     | 选择                        | 理由                                            |

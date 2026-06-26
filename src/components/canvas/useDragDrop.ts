@@ -1,6 +1,24 @@
 import { NODE_VISUAL_MAP, CATEGORY_TO_LF_TYPE } from '../../data'
-import { isValidNodeItem, safeJsonParse } from '../../utils'
+import { isValidNodeItem, safeJsonParse, generateRuleId } from '../../utils'
 import type { LogicGateOp } from '../nodes/LogicGateNode'
+
+/** 视觉类别 → generateRuleId 类型参数 映射 */
+const RULE_ID_TYPE_MAP: Record<string, string> = {
+  condition: 'condition',
+  action: 'action',
+  ext: 'action',
+  flow: 'node',
+  logic_gate: 'logic_gate',
+}
+
+/** 视觉类别 → roleInRule 映射 */
+const ROLE_MAP: Record<string, string> = {
+  condition: 'condition',
+  action: 'action',
+  ext: 'action',
+  flow: 'flow',
+  note: 'note',
+}
 
 /** Parameters for useDragDrop hook */
 interface UseDragDropParams {
@@ -48,6 +66,34 @@ export function useDragDrop({ lfRef, setIsEmpty, readOnly = false }: UseDragDrop
         icon: item.icon,
         priority: 1,
         enabled: true,
+      }
+
+      // 非端口/非注释节点：设置 ruleId + roleInRule
+      if (visualCategory !== 'port' && visualCategory !== 'note') {
+        const ridType = RULE_ID_TYPE_MAP[visualCategory as string]
+        if (ridType) {
+          properties.ruleId = generateRuleId(ridType)
+        }
+        const role = ROLE_MAP[visualCategory as string]
+        if (role) {
+          properties.roleInRule = role
+        }
+      }
+
+      // Port node specific properties
+      if (item.type === 'input_port') {
+        properties.roleInRule = 'input'
+        properties.pointName = `${item.type}_${Date.now()}`
+        properties.displayName = item.name
+        properties.pointType = 'analog'
+        properties.dataType = 'double'
+      } else if (item.type === 'output_port') {
+        properties.roleInRule = 'output'
+        properties.pointName = `${item.type}_${Date.now()}`
+        properties.displayName = item.name
+        properties.pointType = 'virtual'
+        properties.dataType = 'double'
+        properties.scope = 'per_device'
       }
 
       // Add logic gate specific properties
