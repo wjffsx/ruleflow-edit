@@ -62,8 +62,13 @@ export function FileGroup() {
                 const edges = (obj.edges as Array<Record<string, unknown>>) || []
 
                 // 检测是否为语义文档（v2 双文件格式）
+                // version 可能是字符串 "2.0" 或数字（后端部署后 syncMetadata 会改写 version）
                 const isSemantic =
-                  obj.version === '2.0' && nodes.length > 0 && nodes[0].x === undefined
+                  obj.version === '2.0' ||
+                  obj.version === 2 ||
+                  (obj.version === '2' && nodes.length > 0 && nodes[0].x === undefined) ||
+                  (!obj.version && obj.chainId && nodes.length > 0 && nodes[0].x === undefined) ||
+                  (obj.schemaVersion === 1 && nodes.length > 0 && nodes[0].x === undefined)
 
                 if (isSemantic) {
                   // 加载语义文档 + 视图文档（localStorage 兜底）

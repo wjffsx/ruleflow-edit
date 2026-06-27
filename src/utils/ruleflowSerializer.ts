@@ -21,7 +21,7 @@ import type { RuleFlowDocument, RuleFlowNode, RuleFlowEdge } from '../types/rule
 /** 后端使用的纯语义数据（无任何视图状态） */
 export interface SemanticDocument {
   /** 文档 schema 版本 */
-  version: string
+  version: string | number
   /** 规则链 ID */
   chainId: string
   /** 规则链名称 */
@@ -72,7 +72,7 @@ export interface SemanticEdge {
 /** 前端使用的纯视图状态（可本地化存储） */
 export interface ViewDocument {
   /** 视图层 schema 版本 */
-  version: string
+  version: string | number
   /** 关联的规则链 ID（可选，用于多链区分） */
   chainId?: string
   /** 节点位置/尺寸/图标 */
