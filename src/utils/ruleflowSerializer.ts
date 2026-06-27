@@ -40,6 +40,8 @@ export interface SemanticDocument {
   status?: 'draft' | 'published' | 'archived'
   /** 管道类型 */
   pipelineType?: 'standard' | 'fast' | 'batch'
+  /** 节点默认所属规则 ID（节点无 ruleId 时使用此值） */
+  defaultRuleId?: string
   /** 输入数据点 */
   inputs?: Array<Record<string, unknown>>
   /** 输出数据点 */
@@ -165,7 +167,12 @@ interface LfEdge {
 export function buildRuleflowDocument(
   lf: LogicFlow,
   chainName: string,
-  options: { chainId?: string; description?: string; version?: number } = {},
+  options: {
+    chainId?: string
+    description?: string
+    version?: number
+    defaultRuleId?: string
+  } = {},
 ): RuleFlowDocument {
   const graphData = lf.getGraphData() as {
     nodes?: LfNode[]
@@ -179,6 +186,7 @@ export function buildRuleflowDocument(
     evaluationMode: 'all',
     description: options.description,
     version: options.version,
+    defaultRuleId: options.defaultRuleId,
     nodes: (graphData.nodes || []).map(serializeNode),
     edges: (graphData.edges || []).map(serializeEdge),
   }
@@ -294,7 +302,7 @@ const PORT_SEMANTIC_FIELDS = [
 export function buildSemanticDocument(
   lf: LogicFlow,
   chainName: string,
-  options: { chainId?: string; description?: string } = {},
+  options: { chainId?: string; description?: string; defaultRuleId?: string } = {},
 ): SemanticDocument {
   const graphData = lf.getGraphData() as { nodes?: LfNode[]; edges?: LfEdge[] }
   const rawNodes = graphData.nodes || []
@@ -351,6 +359,7 @@ export function buildSemanticDocument(
     evaluationMode: 'all',
     description: options.description,
     schemaVersion: 1,
+    defaultRuleId: options.defaultRuleId,
     inputs: inputs.length > 0 ? inputs : undefined,
     outputs: outputs.length > 0 ? outputs : undefined,
     nodes: semanticNodes,
@@ -397,7 +406,7 @@ export function buildViewDocument(lf: LogicFlow, chainId?: string): ViewDocument
 export function splitToSemanticAndView(
   lf: LogicFlow,
   chainName: string,
-  options: { chainId?: string; description?: string } = {},
+  options: { chainId?: string; description?: string; defaultRuleId?: string } = {},
 ): SplitResult {
   return {
     semantic: buildSemanticDocument(lf, chainName, options),
@@ -446,6 +455,7 @@ export function mergeFromSemanticAndView(
     description: semantic.description,
     status: semantic.status,
     pipelineType: semantic.pipelineType,
+    defaultRuleId: semantic.defaultRuleId,
     inputs: semantic.inputs as any,
     outputs: semantic.outputs as any,
     nodes: semantic.nodes.map((sn) => {
@@ -677,7 +687,7 @@ export function generateRuleId(type: string): string {
 }
 
 // ============================================================
-// 阶段 1: 兼容旧版 buildRuleflowDocument（内部使用白名单）
+// 序列化/反序列化函数
 // ============================================================
 
 /** 节点序列化：text 拍扁为 string，properties 剥离视图字段。 */

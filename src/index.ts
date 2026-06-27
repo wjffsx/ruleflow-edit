@@ -41,17 +41,6 @@ export type {
   EvaluationMode,
 } from './types/ruleflowDocument'
 
-// ── v0.4.0 旧版兼容 API（迁移期）────────────────────────────
-// fromYAML: 自 v0.4.0 起标记 @deprecated，原函数注释中已说明
-//           后续 6 个月内保留作为旧 YAML 兼容兜底，v0.5.0 删除
-export {
-  fromYAML,
-  toYAML,
-  createEmptyDocument,
-  resetIdCounter,
-  fromDefinitionJSON,
-} from './types/ruleflowDocument'
-
 export type {
   NodeData,
   EdgeData,

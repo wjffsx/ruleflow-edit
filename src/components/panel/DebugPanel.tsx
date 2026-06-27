@@ -31,7 +31,11 @@ import {
   toggleBreakpoint,
   lfInstance,
 } from '../../store'
-import { startDebugWithEngine, countStates, clearSimulationInterval } from './debugSimulation'
+import {
+  startDebugWithEngine,
+  countStates,
+  clearSimulationInterval,
+} from '../../services/debugEngine'
 
 /** Reusable data section component for node data inspection */
 function DataSection({

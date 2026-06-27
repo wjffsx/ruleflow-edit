@@ -157,6 +157,3 @@ export {
   downloadAsJsonPair,
   readJsonFile,
 } from './utils/ruleflowSerializer'
-
-// ── v0.4.0 旧版兼容 API（迁移期）────────────────────────────
-export { buildRuleflowDocument, applyDocumentToLf } from './utils/ruleflowSerializer'
