@@ -1,56 +1,8 @@
 /* RuleFlow Editor — View-only Styles */
 /* Minimal CSS for read-only visualization mode */
-
-/* Reset */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html,
-body {
-  height: 100%;
-  overflow: hidden;
-  font-family: var(--rf-font-sans);
-  font-size: var(--rf-text-base);
-  line-height: 1.5;
-  color: var(--rf-text-primary);
-  background: var(--rf-bg-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-#app {
-  height: 100%;
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--rf-border-strong);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--rf-text-tertiary);
-}
-
-/* Selection */
-::selection {
-  background: var(--rf-brand-primary-light);
-  color: var(--rf-brand-primary);
-}
+/* NOTE: 不要在此处放置全局 html/body 样式（如 overflow:hidden）。
+   此 CSS 被 App 端 lazy-load 导入，全局样式会残留到其他页面。
+   仅保留组件作用域的 .lf-* / .rf-* 样式。 */
 
 /* =============================
    LogicFlow Theme Overrides
