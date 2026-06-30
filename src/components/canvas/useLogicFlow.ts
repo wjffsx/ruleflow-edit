@@ -225,8 +225,12 @@ export function useLogicFlow({
       mountedRef.current = false
       clearAllTimers()
       cleanup()
+      // 如果 window.__lf 已被外部（handleBack）置为 null，说明 destroy 已执行，
+      // 跳过二次 destroy 以避免组件卸载后 MobX 微任务仍触发 forceUpdate。
       try {
-        lf.destroy()
+        if ((window as unknown as Record<string, unknown>).__lf !== null) {
+          lf.destroy()
+        }
       } catch (_e) {
         /* ignore destroy errors on unmount */
       }
